@@ -1,21 +1,147 @@
+#!/usr/bin/env python
+import threading
 import rospy
 from ackermann_msgs.msg import AckermannDrive
+import sys
+from select import select
+import termios
+import tty
 
-def main():
-    pub = rospy.Publisher('drive', AckermannDrive, queue_size=10)
-    rospy.init_node('teleop_node', anonymous=True)
-    rate = rospy.Rate(10) # 10hz
+msg = """
+Reading from the keyboard  and Publishing to AckermannDrive!
+---------------------------
+Moving around:
+      w
+a           d
+      s
 
-    msg = AckermannDrive()
-    msg.steering_angle = 0
-    msg.speed = 0
-    while not rospy.is_shutdown():
-        rospy.loginfo(msg)
-        pub.publish(msg)
-        rate.sleep()
+CTRL-C to quit
+"""
 
-if __name__ == '__main__':
+moveBindings = {
+        'a': -1,
+        'd': 1,
+        'w': 0
+    }
+
+class PublishThread(threading.Thread):
+    def __init__(self, rate):
+        super(PublishThread, self).__init__()
+        self.publisher = rospy.Publisher('drive', AckermannDrive, queue_size = 1)
+
+        self.ang = 0.0
+        self.speed = 0.0
+        
+        self.condition = threading.Condition()
+        self.done = False
+
+        # Set timeout to None if rate is 0 (causes new_message to wait forever
+        # for new data to publish)
+        if rate != 0.0:
+            self.timeout = 1.0 / rate
+        else:
+            self.timeout = None
+
+        self.start()
+
+    def wait_for_subscribers(self):
+        i = 0
+        while not rospy.is_shutdown() and self.publisher.get_num_connections() == 0:
+            if i == 4:
+                print("Waiting for subscriber to connect to {}".format(self.publisher.name))
+            rospy.sleep(0.5)
+            i += 1
+            i = i % 5
+        if rospy.is_shutdown():
+            raise Exception("Got shutdown request before subscribers connected")
+
+    def update(self, ang, speed):
+        self.condition.acquire()
+        self.ang = ang
+        self.speed = speed
+
+        # Notify publish thread that we have a new message.
+        self.condition.notify()
+        self.condition.release()
+
+    def stop(self):
+        self.done = True
+        self.update(0, 0)
+        self.join()
+
+    def run(self):
+        drive = AckermannDrive()
+        while not self.done:
+            self.condition.acquire()
+            # Wait for a new message or timeout.
+            self.condition.wait(self.timeout)
+
+            # Copy state into twist message.
+            drive.steering_angle = self.ang
+            drive.speed = self.speed
+
+            self.condition.release()
+
+            # Publish.
+            self.publisher.publish(drive)
+
+        # Publish stop message when thread exits.
+        drive.steering_angle = 0.0
+        drive.speed = 0.0
+        self.publisher.publish(drive)
+
+
+def getKey(settings, timeout):
+    tty.setraw(sys.stdin.fileno())
+    rlist, _, _ = select([sys.stdin], [], [], timeout)
+    if rlist:
+        key = sys.stdin.read(1)
+    else:
+        key = ''
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+    return key
+
+def saveTerminalSettings():
+    return termios.tcgetattr(sys.stdin)
+
+def restoreTerminalSettings(old_settings):
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+
+if __name__=="__main__":
+    settings = saveTerminalSettings()
+    rospy.init_node('teleop_node')
+    pub_thread = PublishThread(0.0)
+    ang = 0
+    speed = 0
+    prev_key = None
+    rospy.loginfo(msg)
     try:
-        main()
-    except rospy.ROSInterruptException:
-        pass
+        pub_thread.wait_for_subscribers()
+        pub_thread.update(ang, speed)
+        while(1):
+            key = getKey(settings, 0.5)
+            if key in moveBindings.keys():
+                if key == 'a' or key == 'd':
+                    if key != prev_key:
+                        ang = 0
+                    elif ang>-100 and ang<100:
+                        ang += 20*moveBindings[key]
+                    prev_key = key
+                elif key == 'w':
+                    speed = 1
+            else:
+                if key == '':
+                    if speed == 1:
+                        speed = 0
+                    else:
+                        continue
+                if (key == '\x03'):
+                    break
+            pub_thread.update(ang, speed)
+
+    except Exception as e:
+        print(e)
+
+    finally:
+        pub_thread.stop()
+        restoreTerminalSettings(settings)
