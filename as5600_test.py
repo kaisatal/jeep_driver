@@ -30,13 +30,21 @@ def read_as5600_angle():
         return None
 
 if __name__ == "__main__":
+    avg_filter = [0]*200
+    prev_ang = -1
     try:
         while True:
             # Read and print the angle from the AS5600 sensor
             angle = read_as5600_angle()
-            if angle is not None:
-                print(f"Current Angle: {angle:.2f} degrees")
-            time.sleep(1)
+            if angle is not None and angle<360:
+                # print(f"Current Angle: {angle} degrees")
+                avg_filter.pop(0)
+                avg_filter.append(angle)
+                avg_angle = round(250-sum(avg_filter)/len(avg_filter))
+                if avg_angle != prev_ang:
+                    print(f"Current Angle: {avg_angle} degrees")
+                    prev_ang = avg_angle
+            # time.sleep(0.5)
 
     except KeyboardInterrupt:
         print("Program terminated by user.")

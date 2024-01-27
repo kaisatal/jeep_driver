@@ -125,7 +125,8 @@ if __name__=="__main__":
                     if key != prev_key:
                         ang = 0
                     elif ang>-100 and ang<100:
-                        ang += 20*moveBindings[key]
+                        ang += 50*moveBindings[key]
+                        # ang = moveBindings[key]
                     prev_key = key
                 elif key == 'w':
                     speed = 1

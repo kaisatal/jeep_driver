@@ -24,6 +24,8 @@ def callback(data):
     else:
         GPIO.output(pins["white_throttle"], GPIO.LOW)
 
+
+
     
 def main():
     global left, right

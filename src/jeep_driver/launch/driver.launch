@@ -1,0 +1,4 @@
+<launch>
+    <node name="driver_node" pkg="jeep_driver" type="driver.py" output="screen"/>
+    <node name="feedback_node" pkg="jeep_driver" type="mrp_sensor.py" output="screen"/>
+</launch>
