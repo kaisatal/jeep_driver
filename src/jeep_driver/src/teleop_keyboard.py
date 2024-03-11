@@ -44,17 +44,6 @@ class PublishThread(threading.Thread):
 
         self.start()
 
-    def wait_for_subscribers(self):
-        i = 0
-        while not rospy.is_shutdown() and self.publisher.get_num_connections() == 0:
-            if i == 4:
-                print("Waiting for subscriber to connect to {}".format(self.publisher.name))
-            rospy.sleep(0.5)
-            i += 1
-            i = i % 5
-        if rospy.is_shutdown():
-            raise Exception("Got shutdown request before subscribers connected")
-
     def update(self, ang, speed):
         self.condition.acquire()
         self.ang = ang
@@ -116,16 +105,16 @@ if __name__=="__main__":
     prev_key = None
     rospy.loginfo(msg)
     try:
-        pub_thread.wait_for_subscribers()
         pub_thread.update(ang, speed)
         while(1):
-            key = getKey(settings, 0.5)
+            key = getKey(settings, 0.1)
             if key in moveBindings.keys():
                 if key == 'a' or key == 'd':
-                    if key != prev_key:
-                        ang = 0
-                    elif ang>-100 and ang<100:
-                        ang += 50*moveBindings[key]
+                    ang = 100*moveBindings[key]
+                    # if key != prev_key:
+                    #     ang = 50
+                    # elif ang>-100 and ang<100:
+                    #     ang += 10*moveBindings[key]
                         # ang = moveBindings[key]
                     prev_key = key
                 elif key == 'w':
@@ -139,6 +128,8 @@ if __name__=="__main__":
                 if (key == '\x03'):
                     break
             pub_thread.update(ang, speed)
+            ang = 0
+            speed = 0
 
     except Exception as e:
         print(e)

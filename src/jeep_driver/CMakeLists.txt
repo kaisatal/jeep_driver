@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.0.2)
 project(jeep_driver)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   rospy
   std_msgs
   ackermann_msgs

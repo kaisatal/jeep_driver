@@ -6,7 +6,7 @@ import time
 pins = {
     "red_left" : 33,
     "green_right" : 32,
-    # "white_throttle" : 31
+    "white_throttle" : 31
 }
 
 def SimpleLEDTest():
@@ -108,6 +108,34 @@ def init():
     # time.sleep(1)
 
 
+def left_right():
+    global right, left
+    right = GPIO.PWM(pins["green_right"], 100)
+    left = GPIO.PWM(pins["red_left"], 100)
+    right.start(0)
+    left.start(0)
+    while True:
+        turn = input("1 - left / 2 - right: ")
+        if int(turn)<0:
+            print("Turnng left")
+            # GPIO.output(pins["green_right"], GPIO.LOW)
+            # GPIO.output(pins["red_left"], GPIO.HIGH)
+            right.ChangeDutyCycle(0)
+            left.ChangeDutyCycle(abs(int(turn)))
+        else:
+            print("Turnng right")
+            # GPIO.output(pins["red_left"], GPIO.LOW)
+            # GPIO.output(pins["green_right"], GPIO.HIGH)
+            left.ChangeDutyCycle(0)
+            right.ChangeDutyCycle(abs(int(turn)))
+        time.sleep(0.5)
+        # GPIO.output(pins["red_left"], GPIO.LOW)
+        # GPIO.output(pins["green_right"], GPIO.LOW)
+        left.ChangeDutyCycle(0)
+        right.ChangeDutyCycle(0)
+
+
+
 
 
 
@@ -116,29 +144,28 @@ def main():
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BOARD) 
     for _, pin in pins.items():
+        print(f"Setting pin {_} to LOW")
         GPIO.setup(pin, GPIO.OUT)  # LED pin set as output
         GPIO.output(pin, GPIO.LOW)
     # GPIO.setup(pins["white_throttle"], GPIO.OUT)  # LED pin set as output
     # GPIO.output(pins["white_throttle"], GPIO.LOW)
-    # right = GPIO.PWM(pins["green_right"], 1000)
-    # left = GPIO.PWM(pins["red_left"], 1000)
 
     try:
         # init()
         # SimpleLEDTest()
-        PWMTest()
+        # PWMTest()
         # NewTest()
+        left_right()
 
     except KeyboardInterrupt:
         print("\nStop")
-        # right.ChangeDutyCycle(0)
-        # left.ChangeDutyCycle(0)
+        right.ChangeDutyCycle(0)
+        left.ChangeDutyCycle(0)
         # for _, pin in pins.items():
-        #     GPIO.setup(pin, GPIO.OUT)  # LED pin set as output
         #     GPIO.output(pin, GPIO.LOW)
         right.stop()
         left.stop()
-        GPIO.cleanup()  # cleanup all GPIO
+        # GPIO.cleanup()  # cleanup all GPIO
 
 if __name__ == '__main__':
     main()
