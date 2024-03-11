@@ -23,7 +23,6 @@ include_directories(${catkin_INCLUDE_DIRS})
 catkin_install_python(PROGRAMS
   src/driver.py
   src/teleop_keyboard.py
-  src/test.py
   src/mrp_sensor.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
