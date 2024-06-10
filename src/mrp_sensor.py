@@ -36,7 +36,7 @@ def main():
     feedback = AckermannDrive()
     rate = rospy.Rate(100)
 
-    avg_filter = [0]*200
+    avg_filter = [0]*100
     prev_ang = -1
 
     # Read and publish the angle from the AS5600 sensor
@@ -45,11 +45,11 @@ def main():
         if angle is not None and angle<360:
             avg_filter.pop(0)
             avg_filter.append(angle)
-            avg_angle = round(250-sum(avg_filter)/len(avg_filter))
+            avg_angle = round(174-sum(avg_filter)/len(avg_filter))
             if avg_angle != prev_ang:
                 feedback.steering_angle = avg_angle
-                pub.publish(feedback)
                 prev_ang = avg_angle
+            pub.publish(feedback)
         rate.sleep()
 
 if __name__ == '__main__':

@@ -5,7 +5,8 @@ import time
 pins = {
     "red_left" : 33,
     "green_right" : 32,
-    # "white_throttle" : 31
+    # "white_throttle" : 31,
+    # "back" : 29
 }
 
 test = 0
@@ -28,6 +29,10 @@ def Test1():
         left.ChangeDutyCycle(rotate_l)
         right.ChangeDutyCycle(rotate_r)
 
+        time.sleep(0.5)
+        left.ChangeDutyCycle(0)
+        right.ChangeDutyCycle(0)
+
 def Test2():
     global test
 
@@ -42,13 +47,17 @@ def Test2():
             GPIO.output(pins['red_left'], GPIO.LOW)
             GPIO.output(pins['green_right'], GPIO.HIGH)
 
+        time.sleep(0.5)
+        GPIO.output(pins['red_left'], GPIO.LOW)
+        GPIO.output(pins['green_right'], GPIO.LOW)
+
 def main():
     global left, right 
 
     GPIO.setmode(GPIO.BOARD) 
 
-    for _, pin in pins.items():
-        GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+    for pin_name, pin in pins.items():
+            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
 
     try:
         Test1()
@@ -56,15 +65,16 @@ def main():
 
     except KeyboardInterrupt:
         print("\nStop")
-        if test == 1:
-            for _, pin in pins.items():
+        if test == 2:
+            for pin_name, pin in pins.items():
                 GPIO.output(pin, GPIO.LOW)
-        elif test == 2:
+
+        elif test == 1:
             right.ChangeDutyCycle(0)
             left.ChangeDutyCycle(0)
             right.stop()
             left.stop()
-        GPIO.cleanup() 
+        # GPIO.cleanup() 
 
 if __name__ == '__main__':
     main()

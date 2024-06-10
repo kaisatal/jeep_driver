@@ -21,7 +21,8 @@ CTRL-C to quit
 moveBindings = {
         'a': -1,
         'd': 1,
-        'w': 0
+        'w': 0,
+        's': 0
     }
 
 class PublishThread(threading.Thread):
@@ -112,24 +113,25 @@ if __name__=="__main__":
                 if key == 'a' or key == 'd':
                     ang = 100*moveBindings[key]
                     # if key != prev_key:
-                    #     ang = 50
+                    #     ang = 70*moveBindings[key]
                     # elif ang>-100 and ang<100:
                     #     ang += 10*moveBindings[key]
                         # ang = moveBindings[key]
-                    prev_key = key
+                    # print("Ang:", ang)
                 elif key == 'w':
                     speed = 1
+                elif key == 's':
+                    speed = -1
+                prev_key = key
             else:
                 if key == '':
-                    if speed == 1:
-                        speed = 0
-                    else:
-                        continue
+                    speed = 0
+                    ang = 0
                 if (key == '\x03'):
                     break
             pub_thread.update(ang, speed)
-            ang = 0
             speed = 0
+            ang = 0
 
     except Exception as e:
         print(e)
