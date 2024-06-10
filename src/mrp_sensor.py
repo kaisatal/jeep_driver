@@ -34,9 +34,9 @@ def main():
     rospy.init_node('feedback_node', anonymous=True)
     pub = rospy.Publisher('feedback', AckermannDrive, queue_size = 1)
     feedback = AckermannDrive()
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(500)
 
-    avg_filter = [0]*100
+    avg_filter = [0]*50
     prev_ang = -1
 
     # Read and publish the angle from the AS5600 sensor

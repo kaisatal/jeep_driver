@@ -110,28 +110,35 @@ if __name__=="__main__":
         while(1):
             key = getKey(settings, 0.1)
             if key in moveBindings.keys():
-                if key == 'a' or key == 'd':
-                    ang = 100*moveBindings[key]
+                # if key == 'a' or key == 'd':
+                #     ang = 100*moveBindings[key]
+
                     # if key != prev_key:
                     #     ang = 70*moveBindings[key]
                     # elif ang>-100 and ang<100:
                     #     ang += 10*moveBindings[key]
                         # ang = moveBindings[key]
                     # print("Ang:", ang)
+                if key == 'a' and ang>5:
+                    ang -= 5
+                elif key == 'd' and ang<70:
+                    ang += 5
                 elif key == 'w':
                     speed = 1
                 elif key == 's':
                     speed = -1
+
+                print("Angle:", ang)
                 prev_key = key
             else:
                 if key == '':
                     speed = 0
-                    ang = 0
+                    # ang = 0
                 if (key == '\x03'):
                     break
             pub_thread.update(ang, speed)
             speed = 0
-            ang = 0
+            # ang = 0
 
     except Exception as e:
         print(e)
