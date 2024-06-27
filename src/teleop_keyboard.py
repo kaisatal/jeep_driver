@@ -110,18 +110,9 @@ if __name__=="__main__":
         while(1):
             key = getKey(settings, 0.1)
             if key in moveBindings.keys():
-                # if key == 'a' or key == 'd':
-                #     ang = 100*moveBindings[key]
-
-                    # if key != prev_key:
-                    #     ang = 70*moveBindings[key]
-                    # elif ang>-100 and ang<100:
-                    #     ang += 10*moveBindings[key]
-                        # ang = moveBindings[key]
-                    # print("Ang:", ang)
-                if key == 'a' and ang>5:
+                if key == 'd' and ang>5:
                     ang -= 5
-                elif key == 'd' and ang<70:
+                elif key == 'a' and ang<70:
                     ang += 5
                 elif key == 'w':
                     speed = 1
