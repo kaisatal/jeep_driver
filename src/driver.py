@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 import rospy
 from ackermann_msgs.msg import AckermannDrive
-
+from simple_pid import PID
 
 pins = {
     "red_left" : 33,
@@ -9,110 +9,101 @@ pins = {
     "forward" : 31,
     "backward" : 29
 }
-feedback_ang = 0
-thresh = 10
 
-# Ackermann Drive callback
-def callback(data):
-    global ang, speed, recive_time
-    ang = int(data.steering_angle)
-    speed = int(data.speed)
-    recive_time = rospy.get_time()
+class Driver:
+    def __init__(self):
+        self.pin_setup()
 
-# MRP sensor callback
-def feedback_callback(data):
-    global feedback_ang
-    feedback_ang = int(data.steering_angle)
+        # ROS node setup
+        rospy.init_node('driver_node')
+        rospy.Subscriber("drive", AckermannDrive, self.callback)
+        rospy.Subscriber("feedback", AckermannDrive, self.feedback_callback, buff_size=1)
+        r = rospy.Rate(100)
 
-def main():
-    global ang, speed, recive_time, feedback_ang
+        self.feedback_ang = 0
+        self.thresh = 5
+        self.ang = 0
+        self.speed = 0
+        self.recive_time = rospy.get_time()
+        self.u = 0
 
-    # Pin setup
-    GPIO.setmode(GPIO.BOARD) 
-    for _, pin in pins.items():
-        GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
-    right = GPIO.PWM(pins["green_right"], 100)
-    left = GPIO.PWM(pins["red_left"], 100)
-    left.start(0)
-    right.start(0)
+        self.pid = PID(
+            Kp=1.6, Ki=0.8, Kd=1, 
+            setpoint=0, 
+            output_limits=(-100, 100)
+        )
 
-    # ROS node setup
-    rospy.init_node('driver_node')
-    rospy.Subscriber("drive", AckermannDrive, callback)
-    rospy.Subscriber("feedback", AckermannDrive, feedback_callback, buff_size=1)
-    r = rospy.Rate(100)
+        while True:
+            self.update()
+            r.sleep()
+            if rospy.is_shutdown():
+                rospy.loginfo("Stoping the driver.")
+                self.right.ChangeDutyCycle(0)
+                self.left.ChangeDutyCycle(0)
+                self.right.stop()
+                self.left.stop()
+                GPIO.output(pins["forward"], GPIO.LOW)
+                GPIO.output(pins["backward"], GPIO.LOW)
+                break
 
-    # Initialisation
-    ang = 0
-    speed = 0
-    recive_time = rospy.get_time()
-    t0 = rospy.get_time()
-    I = 0
-    e0 = ang - feedback_ang
-    Kp, Ki, Kd = 1.3, 0.3, 0.02
+    def pin_setup(self):
+        GPIO.setmode(GPIO.BOARD) 
+        for _, pin in pins.items():
+            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+        self.right = GPIO.PWM(pins["green_right"], 100)
+        self.left = GPIO.PWM(pins["red_left"], 100)
+        self.left.start(0)
+        self.right.start(0)
 
-    while not rospy.is_shutdown():
-        current_time = rospy.get_time()
+    # Ackermann Drive callback
+    def callback(self, data):
+        self.ang = int(data.steering_angle)
+        self.speed = int(data.speed)
+        self.recive_time = rospy.get_time()
+        self.pid.setpoint = self.ang
 
-        # PID controller
-        dt = rospy.get_time()-t0
-        t0 += dt
-        e = ang - feedback_ang
-        D = (e0-e)/dt
-        if e>thresh or e<-thresh:
-            I += e*dt
-        u = Kp*e + Ki*I + Kd*D
-        if abs(u) > 100:
-            u = 100
-            # I = 0
-        # print(e, I, D)
-        # print(u)
-        # print("0:",  feedback_ang, ang, e)
+    # MRP sensor callback
+    def feedback_callback(self, data):
+        self.feedback_ang = int(data.steering_angle)
+        self.u = self.pid(self.feedback_ang)
+
+    def update(self):
+        e = self.ang - self.feedback_ang
 
         # Reset conditions
-        if current_time - recive_time > 2:
-            speed = 0
-        elif feedback_ang > 55 and e > 0:
-            ang = feedback_ang
+        if rospy.get_time() - self.recive_time > 2:
+            self.speed = 0
+        elif self.feedback_ang > 55 and e > 0:
+            self.ang = self.feedback_ang
             e = 0
-        elif feedback_ang < 15 and e < -0:
-            ang = feedback_ang
+        elif self.feedback_ang < 15 and e < -0:
+            self.ang = self.feedback_ang
             e = 0
 
         # Turning
-        if e > thresh:
-            right.ChangeDutyCycle(0)
-            left.ChangeDutyCycle(abs(u))
+        print(self.ang, self.feedback_ang, self.u)
+        if e > self.thresh:
+            self.right.ChangeDutyCycle(0)
+            self.left.ChangeDutyCycle(abs(self.u))
             rospy.loginfo("Turning Left.")
-        elif e < -thresh:
-            left.ChangeDutyCycle(0)
-            right.ChangeDutyCycle(abs(u))
+        elif e < -self.thresh:
+            self.left.ChangeDutyCycle(0)
+            self.right.ChangeDutyCycle(abs(self.u))
             rospy.loginfo("Turning Right.")
         else:
-            right.ChangeDutyCycle(0)
-            left.ChangeDutyCycle(0)
+            self.right.ChangeDutyCycle(0)
+            self.left.ChangeDutyCycle(0)
 
         # Driving
-        if speed > 0:
+        if self.speed > 0:
             GPIO.output(pins["forward"], GPIO.HIGH)
             GPIO.output(pins["backward"], GPIO.LOW)
-        elif speed < 0:
+        elif self.speed < 0:
             GPIO.output(pins["forward"], GPIO.HIGH)
             GPIO.output(pins["backward"], GPIO.HIGH)
         else:
             GPIO.output(pins["forward"], GPIO.LOW)
             GPIO.output(pins["backward"], GPIO.LOW)
-
-        r.sleep()
-        if rospy.is_shutdown():
-            rospy.loginfo("Stoping the driver.")
-            right.ChangeDutyCycle(0)
-            left.ChangeDutyCycle(0)
-            right.stop()
-            left.stop()
-            GPIO.output(pins["forward"], GPIO.LOW)
-            GPIO.output(pins["backward"], GPIO.LOW)
-            break
     
 if __name__ == '__main__':
-    main()
+    Driver()
