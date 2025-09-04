@@ -20,17 +20,17 @@ class Driver:
         rospy.Subscriber("feedback", AckermannDrive, self.feedback_callback, buff_size=1)
         r = rospy.Rate(100)
 
-        self.feedback_ang = 0
-        self.thresh = 5
-        self.ang = 0
+        self.feedback_ang = 0 # actual current angle
+        self.thresh = 5 # allowed angle difference
+        self.ang = 45 # desired angle (45 is middle)
         self.speed = 0
         self.recive_time = rospy.get_time()
-        self.u = 0
+        self.u = 0 # output from PID
 
         self.pid = PID(
-            Kp=1.6, Ki=0.8, Kd=1, 
+            Kp=0.5, Ki=2, Kd=0.1, 
             setpoint=0, 
-            output_limits=(-100, 100)
+            output_limits=(-98.5, 100)
         )
 
         while True:
@@ -73,10 +73,10 @@ class Driver:
         # Reset conditions
         if rospy.get_time() - self.recive_time > 2:
             self.speed = 0
-        elif self.feedback_ang > 55 and e > 0:
+        elif self.feedback_ang > 60 and e > 0: # physically does not go over 64
             self.ang = self.feedback_ang
             e = 0
-        elif self.feedback_ang < 15 and e < -0:
+        elif self.feedback_ang < 0 and e < -0: # physically does not go under -3
             self.ang = self.feedback_ang
             e = 0
 
@@ -88,7 +88,7 @@ class Driver:
             rospy.loginfo("Turning Left.")
         elif e < -self.thresh:
             self.left.ChangeDutyCycle(0)
-            self.right.ChangeDutyCycle(abs(self.u))
+            self.right.ChangeDutyCycle(abs(self.u)) # does not respond to values close to 100
             rospy.loginfo("Turning Right.")
         else:
             self.right.ChangeDutyCycle(0)

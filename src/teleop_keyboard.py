@@ -26,11 +26,11 @@ moveBindings = {
     }
 
 class PublishThread(threading.Thread):
-    def __init__(self, rate):
+    def __init__(self, rate, ang):
         super(PublishThread, self).__init__()
         self.publisher = rospy.Publisher('drive', AckermannDrive, queue_size = 1)
 
-        self.ang = 0.0
+        self.ang = ang
         self.speed = 0.0
         
         self.condition = threading.Condition()
@@ -100,8 +100,8 @@ def restoreTerminalSettings(old_settings):
 if __name__=="__main__":
     settings = saveTerminalSettings()
     rospy.init_node('teleop_node')
-    pub_thread = PublishThread(0.0)
-    ang = 0
+    ang = 45
+    pub_thread = PublishThread(0.0, ang)
     speed = 0
     prev_key = None
     rospy.loginfo(msg)
@@ -110,9 +110,9 @@ if __name__=="__main__":
         while(1):
             key = getKey(settings, 0.1)
             if key in moveBindings.keys():
-                if key == 'd' and ang>5:
+                if key == 'd' and ang > -5:
                     ang -= 5
-                elif key == 'a' and ang<70:
+                elif key == 'a' and ang < 65:
                     ang += 5
                 elif key == 'w':
                     speed = 1
@@ -124,12 +124,10 @@ if __name__=="__main__":
             else:
                 if key == '':
                     speed = 0
-                    # ang = 0
-                if (key == '\x03'):
+                if (key == '\x03'): # Ctrl+C
                     break
             pub_thread.update(ang, speed)
             speed = 0
-            # ang = 0
 
     except Exception as e:
         print(e)
