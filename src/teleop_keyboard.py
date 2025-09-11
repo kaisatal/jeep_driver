@@ -110,11 +110,10 @@ if __name__=="__main__":
         while(1):
             key = getKey(settings, 0.1)
             if key in moveBindings.keys():
-                #if key == 'd' and ang > -5:
-                if key == 'd':
+                # range is -20 to 75
+                if key == 'd' and ang > -20:
                     ang -= 5
-                #elif key == 'a' and ang < 65:
-                elif key == 'a':
+                elif key == 'a' and ang < 75:
                     ang += 5
                 elif key == 'w':
                     speed = 1

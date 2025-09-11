@@ -78,15 +78,14 @@ class Driver:
         if rospy.get_time() - self.recive_time > 2:
             self.speed = 0
 
-        # Current magnet value range: 13 to 74
+        # Current magnet value range: -17 to 73
+
         # Magnet value range (for angle) depends on how the magnet is situated, but the hot
         # glue that held the magnet has come loose, therefore the magnet can move and the
         # range might change
-        """if self.feedback_ang > 60 and e > 0 or self.feedback_ang < 0 and e < 0:
-            e = 0"""
 
         # Turning
-        print(f"dest: {self.ang}, curr: {self.feedback_ang}, u: {self.u}")
+        print(f"dest: {self.ang}, curr: {self.feedback_ang}, output: {self.u}")
         if e > self.thresh:
             self.right.ChangeDutyCycle(0)
             self.left.ChangeDutyCycle(abs(self.u))
