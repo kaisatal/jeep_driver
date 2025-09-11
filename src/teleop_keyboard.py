@@ -100,7 +100,7 @@ def restoreTerminalSettings(old_settings):
 if __name__=="__main__":
     settings = saveTerminalSettings()
     rospy.init_node('teleop_node')
-    ang = 45
+    ang = 45 # starting angle
     pub_thread = PublishThread(0.0, ang)
     speed = 0
     prev_key = None
@@ -110,9 +110,11 @@ if __name__=="__main__":
         while(1):
             key = getKey(settings, 0.1)
             if key in moveBindings.keys():
-                if key == 'd' and ang > -5:
+                #if key == 'd' and ang > -5:
+                if key == 'd':
                     ang -= 5
-                elif key == 'a' and ang < 65:
+                #elif key == 'a' and ang < 65:
+                elif key == 'a':
                     ang += 5
                 elif key == 'w':
                     speed = 1

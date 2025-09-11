@@ -21,14 +21,14 @@ class Driver:
         r = rospy.Rate(100)
 
         self.feedback_ang = 0 # actual current angle
-        self.thresh = 5 # allowed angle difference
-        self.ang = 45 # desired angle (45 is middle)
+        self.thresh = 4 # allowed angle difference
+        self.ang = 45 # desired angle (starting angle)
         self.speed = 0
         self.recive_time = rospy.get_time()
         self.u = 0 # output from PID
 
         self.pid = PID(
-            Kp=0.5, Ki=2, Kd=0.1, 
+            Kp=25, Ki=0, Kd=0, 
             setpoint=0, 
             output_limits=(-98.5, 100)
         )
@@ -47,7 +47,7 @@ class Driver:
                 break
 
     def pin_setup(self):
-        GPIO.setmode(GPIO.BOARD) 
+        GPIO.setmode(GPIO.BOARD)
         for _, pin in pins.items():
             GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
         self.right = GPIO.PWM(pins["green_right"], 100)
@@ -65,7 +65,11 @@ class Driver:
     # MRP sensor callback
     def feedback_callback(self, data):
         self.feedback_ang = int(data.steering_angle)
-        self.u = self.pid(self.feedback_ang)
+
+        if abs(self.ang - self.feedback_ang) <= self.thresh:
+            self.u = 0 # to prevent accumulation
+        else:
+            self.u = self.pid(self.feedback_ang)
 
     def update(self):
         e = self.ang - self.feedback_ang
@@ -73,15 +77,16 @@ class Driver:
         # Reset conditions
         if rospy.get_time() - self.recive_time > 2:
             self.speed = 0
-        elif self.feedback_ang > 60 and e > 0: # physically does not go over 64
-            self.ang = self.feedback_ang
-            e = 0
-        elif self.feedback_ang < 0 and e < -0: # physically does not go under -3
-            self.ang = self.feedback_ang
-            e = 0
+
+        # Current magnet value range: 13 to 74
+        # Magnet value range (for angle) depends on how the magnet is situated, but the hot
+        # glue that held the magnet has come loose, therefore the magnet can move and the
+        # range might change
+        """if self.feedback_ang > 60 and e > 0 or self.feedback_ang < 0 and e < 0:
+            e = 0"""
 
         # Turning
-        print(self.ang, self.feedback_ang, self.u)
+        print(f"dest: {self.ang}, curr: {self.feedback_ang}, u: {self.u}")
         if e > self.thresh:
             self.right.ChangeDutyCycle(0)
             self.left.ChangeDutyCycle(abs(self.u))
