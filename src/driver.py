@@ -27,6 +27,10 @@ class Driver:
         self.recive_time = rospy.get_time()
         self.u = 0 # output from PID
 
+        self.n_left = 0 # +1 with left turn, -1 with no turn (still), set to 0 when n_right=30
+        self.n_right = 0 # +1 with right turn, -1 with no turn (still), set to 0 when n_left=30
+        self.is_oscillating = False # lower output value while True
+
         self.pid = PID(
             Kp=25, Ki=0, Kd=0, 
             setpoint=0, 
@@ -37,7 +41,7 @@ class Driver:
             self.update()
             r.sleep()
             if rospy.is_shutdown():
-                rospy.loginfo("Stoping the driver.")
+                rospy.loginfo("Stopping the driver.")
                 self.right.ChangeDutyCycle(0)
                 self.left.ChangeDutyCycle(0)
                 self.right.stop()
@@ -88,15 +92,40 @@ class Driver:
         print(f"dest: {self.ang}, curr: {self.feedback_ang}, output: {self.u}")
         if e > self.thresh:
             self.right.ChangeDutyCycle(0)
-            self.left.ChangeDutyCycle(abs(self.u))
-            rospy.loginfo("Turning Left.")
+
+            if self.is_oscillating:
+                self.left.ChangeDutyCycle(0)
+                rospy.loginfo("Oscillation prevention (Turning Left).")
+            else:
+                self.left.ChangeDutyCycle(abs(self.u))
+                rospy.loginfo("Turning Left.")
+
+            self.n_left += 1
+            if self.n_left >= 30:
+                self.n_right = 0 # Not oscillating
+
         elif e < -self.thresh:
             self.left.ChangeDutyCycle(0)
-            self.right.ChangeDutyCycle(abs(self.u)) # does not respond to values close to 100
-            rospy.loginfo("Turning Right.")
+
+            if self.is_oscillating:
+                self.right.ChangeDutyCycle(0)
+                rospy.loginfo("Oscillation prevention (Turning Right).")
+            else:
+                self.right.ChangeDutyCycle(abs(self.u)) # does not respond to values in range 99-100
+                rospy.loginfo("Turning Right.")
+
+            self.n_right += 1
+            if self.n_right >= 30:
+                self.n_left = 0 # Not oscillating
+
         else:
             self.right.ChangeDutyCycle(0)
             self.left.ChangeDutyCycle(0)
+
+            if self.n_left > 0:
+                self.n_left -= 1
+            if self.n_right > 0:
+                self.n_right -= 1
 
         # Driving
         if self.speed > 0:
