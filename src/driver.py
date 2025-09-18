@@ -27,8 +27,8 @@ class Driver:
         self.recive_time = rospy.get_time()
         self.u = 0 # output from PID
 
-        self.n_left = 0 # +1 with left turn, -1 with no turn (still), set to 0 when n_right=30
-        self.n_right = 0 # +1 with right turn, -1 with no turn (still), set to 0 when n_left=30
+        self.n_left = 0 # +1 with left turn, -1 with no turn (still), set to 0 when n_right=40
+        self.n_right = 0 # +1 with right turn, -1 with no turn (still), set to 0 when n_left=40
         self.is_oscillating = False # lower output value while True
 
         self.pid = PID(
@@ -101,7 +101,7 @@ class Driver:
                 rospy.loginfo("Turning Left.")
 
             self.n_left += 1
-            if self.n_left >= 30:
+            if self.n_left >= 40:
                 self.n_right = 0 # Not oscillating
 
         elif e < -self.thresh:
@@ -115,7 +115,7 @@ class Driver:
                 rospy.loginfo("Turning Right.")
 
             self.n_right += 1
-            if self.n_right >= 30:
+            if self.n_right >= 40:
                 self.n_left = 0 # Not oscillating
 
         else:
