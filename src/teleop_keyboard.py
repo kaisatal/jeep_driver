@@ -8,7 +8,7 @@ import termios
 import tty
 
 msg = """
-Reading from the keyboard  and Publishing to AckermannDrive!
+Reading from the keyboard and Publishing to AckermannDrive!
 ---------------------------
 Moving around:
       w

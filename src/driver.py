@@ -20,21 +20,18 @@ class Driver:
         rospy.Subscriber("feedback", AckermannDrive, self.feedback_callback, buff_size=1)
         r = rospy.Rate(100)
 
-        self.feedback_ang = 0 # actual current angle
-        self.thresh = 4 # allowed angle difference
+        self.feedback_ang = 45 # actual current angle
         self.ang = 45 # desired angle (starting angle)
+        self.thresh = 4 # allowed angle difference
+        self.e = 0 # current error (angle difference)
         self.speed = 0
-        self.recive_time = rospy.get_time()
+        self.receive_time = rospy.get_time()
         self.u = 0 # output from PID
 
-        self.n_left = 0 # +1 with left turn, -1 with no turn (still), set to 0 when n_right=40
-        self.n_right = 0 # +1 with right turn, -1 with no turn (still), set to 0 when n_left=40
-        self.is_oscillating = False # lower output value while True
-
         self.pid = PID(
-            Kp=25, Ki=0, Kd=0, 
+            Kp=10, Ki=5, Kd=20, 
             setpoint=0, 
-            output_limits=(-98.5, 100)
+            output_limits=(-98.5, 98.5) # motors do not respond to values in range ~ 99-100
         )
 
         while True:
@@ -61,25 +58,23 @@ class Driver:
 
     # Ackermann Drive callback
     def callback(self, data):
-        self.ang = int(data.steering_angle)
+        self.ang = int(data.steering_angle) # keyboard input angle
         self.speed = int(data.speed)
-        self.recive_time = rospy.get_time()
-        self.pid.setpoint = self.ang
+        self.receive_time = rospy.get_time()
 
     # MRP sensor callback
     def feedback_callback(self, data):
-        self.feedback_ang = int(data.steering_angle)
+        self.feedback_ang = int(data.steering_angle) # sensor angle
+        self.e = self.ang - self.feedback_ang
 
-        if abs(self.ang - self.feedback_ang) <= self.thresh:
-            self.u = 0 # to prevent accumulation
+        if abs(self.e) <= self.thresh:
+            self.u = 0 # to prevent accumulation (has an effect if Ki > 0)
         else:
-            self.u = self.pid(self.feedback_ang)
+            self.u = self.pid(self.e)
 
     def update(self):
-        e = self.ang - self.feedback_ang
-
         # Reset conditions
-        if rospy.get_time() - self.recive_time > 2:
+        if rospy.get_time() - self.receive_time > 2:
             self.speed = 0
 
         # Current magnet value range: -17 to 73
@@ -90,42 +85,30 @@ class Driver:
 
         # Turning
         print(f"dest: {self.ang}, curr: {self.feedback_ang}, output: {self.u}")
-        if e > self.thresh:
+
+        if self.e > self.thresh:
             self.right.ChangeDutyCycle(0)
 
-            if self.is_oscillating:
-                self.left.ChangeDutyCycle(0)
-                rospy.loginfo("Oscillation prevention (Turning Left).")
-            else:
+            if abs(self.u) > 60:
                 self.left.ChangeDutyCycle(abs(self.u))
-                rospy.loginfo("Turning Left.")
+            else:
+                self.left.ChangeDutyCycle(0)
+            
+            rospy.loginfo("Turning Left.")
 
-            self.n_left += 1
-            if self.n_left >= 40:
-                self.n_right = 0 # Not oscillating
-
-        elif e < -self.thresh:
+        elif self.e < -self.thresh and abs(self.u) > 60:
             self.left.ChangeDutyCycle(0)
 
-            if self.is_oscillating:
-                self.right.ChangeDutyCycle(0)
-                rospy.loginfo("Oscillation prevention (Turning Right).")
+            if abs(self.u) > 60:
+                self.right.ChangeDutyCycle(abs(self.u))
             else:
-                self.right.ChangeDutyCycle(abs(self.u)) # does not respond to values in range 99-100
-                rospy.loginfo("Turning Right.")
-
-            self.n_right += 1
-            if self.n_right >= 40:
-                self.n_left = 0 # Not oscillating
+                self.right.ChangeDutyCycle(0)
+            
+            rospy.loginfo("Turning Right.")
 
         else:
             self.right.ChangeDutyCycle(0)
             self.left.ChangeDutyCycle(0)
-
-            if self.n_left > 0:
-                self.n_left -= 1
-            if self.n_right > 0:
-                self.n_right -= 1
 
         # Driving
         if self.speed > 0:
