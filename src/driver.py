@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
-import rospy
+import rclpy
+from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
 from simple_pid import PID
 
@@ -10,22 +11,22 @@ pins = {
     "backward" : 29
 }
 
-class Driver:
+class Driver(Node):
     def __init__(self):
-        self.pin_setup()
+        # ROS2 node setup
+        super().__init__('driver_node')
+        self.create_subscription(AckermannDrive, 'drive', self.callback, 10)
+        self.create_subscription(AckermannDrive, 'feedback', self.feedback_callback, 1)
+        self.timer = self.create_timer(0.01, self.update)  # 100 Hz
 
-        # ROS node setup
-        rospy.init_node('driver_node')
-        rospy.Subscriber("drive", AckermannDrive, self.callback)
-        rospy.Subscriber("feedback", AckermannDrive, self.feedback_callback, buff_size=1)
-        r = rospy.Rate(100)
+        self.pin_setup()
 
         self.feedback_ang = 45 # actual current angle
         self.ang = 45 # desired angle (starting angle)
         self.thresh = 4 # allowed angle difference
         self.e = 0 # current error (angle difference)
         self.speed = 0
-        self.receive_time = rospy.get_time()
+        self.last_received = self.get_clock().now().nanoseconds / 1e9
         self.u = 0 # output from PID
 
         self.pid = PID(
@@ -34,37 +35,24 @@ class Driver:
             output_limits=(-98.5, 98.5) # motors do not respond to values in range ~ 99-100
         )
 
-        while True:
-            self.update()
-            r.sleep()
-            if rospy.is_shutdown():
-                rospy.loginfo("Stopping the driver.")
-                self.right.ChangeDutyCycle(0)
-                self.left.ChangeDutyCycle(0)
-                self.right.stop()
-                self.left.stop()
-                GPIO.output(pins["forward"], GPIO.LOW)
-                GPIO.output(pins["backward"], GPIO.LOW)
-                break
-
     def pin_setup(self):
         GPIO.setmode(GPIO.BOARD)
         for _, pin in pins.items():
             GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
-        self.right = GPIO.PWM(pins["green_right"], 100)
         self.left = GPIO.PWM(pins["red_left"], 100)
+        self.right = GPIO.PWM(pins["green_right"], 100)
         self.left.start(0)
         self.right.start(0)
 
     # Ackermann Drive callback
-    def callback(self, data):
-        self.ang = int(data.steering_angle) # keyboard input angle
-        self.speed = int(data.speed)
-        self.receive_time = rospy.get_time()
+    def callback(self, msg: AckermannDrive):
+        self.ang = int(msg.steering_angle) # keyboard input angle
+        self.speed = int(msg.speed)
+        self.last_received = self.get_clock().now().nanoseconds / 1e9
 
     # MRP sensor callback
-    def feedback_callback(self, data):
-        self.feedback_ang = int(data.steering_angle) # sensor angle
+    def feedback_callback(self, msg: AckermannDrive):
+        self.feedback_ang = int(msg.steering_angle) # sensor angle
         self.e = self.ang - self.feedback_ang
 
         if abs(self.e) <= self.thresh:
@@ -74,7 +62,7 @@ class Driver:
 
     def update(self):
         # Reset conditions
-        if rospy.get_time() - self.receive_time > 2:
+        if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
             self.speed = 0
 
         # Current magnet value range: -17 to 73
@@ -94,9 +82,9 @@ class Driver:
             else:
                 self.left.ChangeDutyCycle(0)
             
-            rospy.loginfo("Turning Left.")
+            self.get_logger().info("Turning Left.")
 
-        elif self.e < -self.thresh and abs(self.u) > 60:
+        elif self.e < -self.thresh:
             self.left.ChangeDutyCycle(0)
 
             if abs(self.u) > 60:
@@ -104,7 +92,7 @@ class Driver:
             else:
                 self.right.ChangeDutyCycle(0)
             
-            rospy.loginfo("Turning Right.")
+            self.get_logger().info("Turning Right.")
 
         else:
             self.right.ChangeDutyCycle(0)
@@ -120,6 +108,25 @@ class Driver:
         else:
             GPIO.output(pins["forward"], GPIO.LOW)
             GPIO.output(pins["backward"], GPIO.LOW)
+
+def main():
+    rclpy.init()
+    driver_node = Driver()
+    try:
+        rclpy.spin(driver_node)
+
+    except KeyboardInterrupt:
+        driver_node.get_logger().info("Shutting down driver node.")
+    finally:
+        driver_node.left.ChangeDutyCycle(0)
+        driver_node.right.ChangeDutyCycle(0)
+        driver_node.left.stop()
+        driver_node.right.stop()
+        GPIO.output(pins["forward"], GPIO.LOW)
+        GPIO.output(pins["backward"], GPIO.LOW)
+        GPIO.cleanup()
+        driver_node.destroy_node()
+        rclpy.shutdown()
     
 if __name__ == '__main__':
-    Driver()
+    main()

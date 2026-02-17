@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import threading
-import rospy
+import rclpy
+from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
 import sys
 from select import select
@@ -26,13 +27,12 @@ moveBindings = {
     }
 
 class PublishThread(threading.Thread):
-    def __init__(self, rate, ang):
-        super(PublishThread, self).__init__()
-        self.publisher = rospy.Publisher('drive', AckermannDrive, queue_size = 1)
-
+    def __init__(self, node, rate, ang):
+        super().__init__()
+        self.node = node
+        self.publisher = self.node.create_publisher(AckermannDrive, 'drive', 1)
         self.ang = ang
         self.speed = 0.0
-        
         self.condition = threading.Condition()
         self.done = False
 
@@ -46,38 +46,35 @@ class PublishThread(threading.Thread):
         self.start()
 
     def update(self, ang, speed):
-        self.condition.acquire()
-        self.ang = ang
-        self.speed = speed
-
-        # Notify publish thread that we have a new message.
-        self.condition.notify()
-        self.condition.release()
+        with self.condition:
+            self.ang = ang
+            self.speed = speed
+            self.condition.notify()
 
     def stop(self):
-        self.done = True
-        self.update(0, 0)
+        with self.condition:
+            self.done = True
+            self.condition.notify()
+        # Waiting for the thread to finish
         self.join()
 
     def run(self):
         drive = AckermannDrive()
-        while not self.done:
-            self.condition.acquire()
-            # Wait for a new message or timeout.
-            self.condition.wait(self.timeout)
-
-            # Copy state into twist message.
-            drive.steering_angle = self.ang
-            drive.speed = self.speed
-
-            self.condition.release()
-
-            # Publish.
+        while True:
+            with self.condition:
+                if self.done:
+                    break
+                # Wait for a new message or timeout.
+                self.condition.wait(self.timeout)
+                # Copy state into twist message.
+                drive.steering_angle = self.ang
+                drive.speed = self.speed
+            
             self.publisher.publish(drive)
 
-        # Publish stop message when thread exits.
-        drive.steering_angle = 0.0
-        drive.speed = 0.0
+        # Stop the car when Ctrl+C is pressed
+        drive.steering_angle = self.ang
+        drive.speed = 0
         self.publisher.publish(drive)
 
 
@@ -97,19 +94,20 @@ def saveTerminalSettings():
 def restoreTerminalSettings(old_settings):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
-if __name__=="__main__":
+def main():
+    rclpy.init()
+    node = Node('teleop_node')
     settings = saveTerminalSettings()
-    rospy.init_node('teleop_node')
+
     ang = 45 # starting angle
-    pub_thread = PublishThread(0.0, ang)
-    speed = 0
-    prev_key = None
-    rospy.loginfo(msg)
+    speed = 0 # not moving
+    pub_thread = PublishThread(node, rate=0.0, ang=ang)
     try:
-        pub_thread.update(ang, speed)
-        while(1):
+        print(msg)
+        pub_thread.update(ang, speed) # Starting position
+        while True:
             key = getKey(settings, 0.1)
-            if key in moveBindings.keys():
+            if key in moveBindings:
                 # range is -20 to 75
                 if key == 'd' and ang > -20:
                     ang -= 5
@@ -119,20 +117,21 @@ if __name__=="__main__":
                     speed = 1
                 elif key == 's':
                     speed = -1
-
-                print("Angle:", ang)
-                prev_key = key
+                print("Angle: ", ang)
             else:
-                if key == '':
-                    speed = 0
-                if (key == '\x03'): # Ctrl+C
+                if key == '\x03':  # Ctrl+C
                     break
+            
             pub_thread.update(ang, speed)
             speed = 0
 
     except Exception as e:
         print(e)
-
     finally:
         pub_thread.stop()
         restoreTerminalSettings(settings)
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__=="__main__":
+    main()

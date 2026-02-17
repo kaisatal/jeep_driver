@@ -1,29 +1,24 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(jeep_driver)
 
-find_package(catkin REQUIRED COMPONENTS
-  rospy
-  std_msgs
-  ackermann_msgs
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
+
+# Install Python scripts
+install(
+  PROGRAMS
+    src/driver.py
+    src/teleop_keyboard.py
+    src/mrp_sensor.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-###################################
-## catkin specific configuration ##
-###################################
-catkin_package()
-
-###########
-## Build ##
-###########
-include_directories(${catkin_INCLUDE_DIRS})
-
-#############
-## Install ##
-#############
-catkin_install_python(PROGRAMS
-  src/driver.py
-  src/teleop_keyboard.py
-  src/mrp_sensor.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
+ament_package()
