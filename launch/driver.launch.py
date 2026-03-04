@@ -5,13 +5,13 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='jeep_driver',
-            executable='driver.py',
+            executable='driver_mode',
             name='driver_node',
             output='screen'
         ),
         Node(
             package='jeep_driver',
-            executable='mrp_sensor.py',
+            executable='feedback_node',
             name='feedback_node',
             output='screen'
         )
