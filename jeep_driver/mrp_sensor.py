@@ -46,7 +46,7 @@ class FeedbackNode(Node):
             self.avg_filter.append(angle)
             avg_angle = round(174-sum(self.avg_filter)/len(self.avg_filter))
             if avg_angle != self.prev_ang:
-                self.feedback.steering_angle = avg_angle
+                self.feedback.steering_angle = float(avg_angle)
                 self.prev_ang = avg_angle
             self.pub.publish(self.feedback)
 
