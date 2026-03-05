@@ -14,7 +14,10 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
+    maintainer='Kaisa Talts',
+    maintainer_email='taltskaisa@gmail.com',
     description='The jeep_driver package',
+    license='TODO',
     entry_points={
         'console_scripts': [
             'driver_node = jeep_driver.driver:main',

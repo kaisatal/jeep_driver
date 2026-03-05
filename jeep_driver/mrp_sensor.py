@@ -36,7 +36,7 @@ class FeedbackNode(Node):
         self.feedback = AckermannDrive()
         self.avg_filter = [0]*50
         self.prev_ang = -1
-        self.timer = self.create_timer(0.002, self.timer_callback) # 500 Hz
+        self.timer = self.create_timer(0.01, self.timer_callback) # 100 Hz for steering feedback
     
     # Read and publish the angle from the AS5600 sensor
     def timer_callback(self):
