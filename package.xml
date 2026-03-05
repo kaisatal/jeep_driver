@@ -6,6 +6,7 @@
 
   <maintainer email="taltskaisa@gmail.com">Kaisa Talts</maintainer>
   <license>TODO</license>
+  <author email="iryna.gurova@gmail.com">Iryna Hurova</author>
 
   <buildtool_depend>ament_python</buildtool_depend>
 
