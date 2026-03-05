@@ -1,4 +1,4 @@
-import RPi.GPIO as GPIO
+import Jetson.GPIO as GPIO
 import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
