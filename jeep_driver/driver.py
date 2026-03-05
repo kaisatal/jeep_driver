@@ -36,9 +36,15 @@ class Driver(Node):
         )
 
     def pin_setup(self):
-        GPIO.setmode(GPIO.BOARD)
-        for _, pin in pins.items():
-            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+        try:
+            GPIO.setmode(GPIO.BOARD)
+            for _, pin in pins.items():
+                GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+        except Exception as e:
+            print("GPIO setup failed:", e)
+            GPIO.cleanup()
+            raise e
+        
         self.left = GPIO.PWM(pins["red_left"], 100)
         self.right = GPIO.PWM(pins["green_right"], 100)
         self.left.start(0)
