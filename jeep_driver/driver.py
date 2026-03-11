@@ -123,11 +123,11 @@ def main():
     except KeyboardInterrupt:
         driver_node.get_logger().info("Shutting down driver node.")
     finally:
-        driver_node.timer.cancel()
-        GPIO.output(pins["forward"], GPIO.LOW)
-        GPIO.output(pins["backward"], GPIO.LOW)
         driver_node.left.ChangeDutyCycle(0)
         driver_node.right.ChangeDutyCycle(0)
+        GPIO.output(pins["forward"], GPIO.LOW)
+        GPIO.output(pins["backward"], GPIO.LOW)
+        driver_node.timer.cancel()
         driver_node.left.stop()
         driver_node.right.stop()
         GPIO.cleanup()

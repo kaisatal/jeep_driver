@@ -59,8 +59,9 @@ def main():
     except KeyboardInterrupt:
         feedback_node.get_logger().info("Shutting down feedback node.")
     finally:
+        feedback_node.timer.cancel()
         feedback_node.destroy_node()
-        #rclpy.shutdown()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
