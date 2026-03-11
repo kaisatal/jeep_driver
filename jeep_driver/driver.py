@@ -32,7 +32,7 @@ class Driver(Node):
         self.pid = PID(
             Kp=10, Ki=5, Kd=20, 
             setpoint=0, 
-            output_limits=(-98.5, 98.5) # motors do not respond to values in range ~ 99-100
+            output_limits=(-100, 100) # motors do not respond to values in range ~ 99-100
         )
 
     def pin_setup(self):
@@ -71,7 +71,7 @@ class Driver(Node):
         if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
             self.speed = 0
 
-        # Current magnet value range: -17 to 73
+        # Current magnet value range: -15 to 75
 
         # Magnet value range (for angle) depends on how the magnet is situated, but the hot
         # glue that held the magnet has come loose, therefore the magnet can move and the
