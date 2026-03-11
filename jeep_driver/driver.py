@@ -11,7 +11,7 @@ pins = {
     "backward" : 29
 }
 
-class Driver(Node):
+class DriverNode(Node):
     def __init__(self):
         # ROS2 node setup
         super().__init__('driver_node')
@@ -32,7 +32,7 @@ class Driver(Node):
         self.pid = PID(
             Kp=10, Ki=5, Kd=20, 
             setpoint=0, 
-            output_limits=(-100, 100) # motors do not respond to values in range ~ 99-100
+            output_limits=(-98.5, 98.5) # motors do not respond to values in range ~ 99-100
         )
 
     def pin_setup(self):
@@ -117,7 +117,7 @@ class Driver(Node):
 
 def main():
     rclpy.init()
-    driver_node = Driver()
+    driver_node = DriverNode()
     try:
         rclpy.spin(driver_node)
 

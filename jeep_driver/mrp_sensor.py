@@ -52,15 +52,15 @@ class FeedbackNode(Node):
 
 def main():
     rclpy.init()
-    node = FeedbackNode()
+    feedback_node = FeedbackNode()
 
     try:
-        rclpy.spin(node)
+        rclpy.spin(feedback_node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down feedback node.")
+        feedback_node.get_logger().info("Shutting down feedback node.")
     finally:
-        node.destroy_node()
-        rclpy.shutdown()
+        feedback_node.destroy_node()
+        #rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
