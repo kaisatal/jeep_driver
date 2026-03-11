@@ -123,14 +123,13 @@ def main():
     except KeyboardInterrupt:
         driver_node.get_logger().info("Shutting down driver node.")
     finally:
+        driver_node.timer.cancel()
+        GPIO.output(pins["forward"], GPIO.LOW)
+        GPIO.output(pins["backward"], GPIO.LOW)
         driver_node.left.ChangeDutyCycle(0)
         driver_node.right.ChangeDutyCycle(0)
         driver_node.left.stop()
         driver_node.right.stop()
-        GPIO.output(pins["forward"], GPIO.LOW)
-        GPIO.output(pins["backward"], GPIO.LOW)
-        print("Shut down the forward/backward pins.")
-        
         GPIO.cleanup()
         driver_node.destroy_node()
         rclpy.shutdown()
