@@ -22,17 +22,17 @@ class DriverNode(Node):
         self.pin_setup()
 
         self.feedback_ang = 45 # actual current angle
-        self.ang = 45 # desired angle (starting angle)
+        self.keyboard_ang = 45 # desired angle (starting angle)
         self.thresh = 4 # allowed angle difference
-        self.e = 0 # current error (angle difference)
+        self.e = 0 # current error (keyboard_ang - feedback_ang)
         self.speed = 0
         self.last_received = self.get_clock().now().nanoseconds / 1e9
         self.u = 0 # output from PID
 
         self.pid = PID(
-            Kp=10, Ki=5, Kd=20, 
-            setpoint=0, 
-            output_limits=(-98.5, 98.5) # motors do not respond to values in range ~ 99-100
+            Kp = 10, Ki = 5, Kd = 20, 
+            setpoint = 0,
+            output_limits = (-98.5, 98.5) # motors do not respond to values in range ~ 99-100
         )
 
     def pin_setup(self):
@@ -45,22 +45,21 @@ class DriverNode(Node):
             GPIO.cleanup()
             raise e
         
-        self.left = GPIO.PWM(pins["red_left"], 100)
-        self.right = GPIO.PWM(pins["green_right"], 100)
+        self.left = GPIO.PWM(pins["red_left"], 1000)
+        self.right = GPIO.PWM(pins["green_right"], 1000)
         self.left.start(0)
         self.right.start(0)
 
     # Ackermann Drive callback
     def callback(self, msg: AckermannDrive):
-        self.ang = int(msg.steering_angle) # keyboard input angle
+        self.keyboard_ang = int(msg.steering_angle) # keyboard input angle
         self.speed = int(msg.speed)
         self.last_received = self.get_clock().now().nanoseconds / 1e9
 
     # MRP sensor callback
     def feedback_callback(self, msg: AckermannDrive):
         self.feedback_ang = int(msg.steering_angle) # sensor angle
-        self.e = self.ang - self.feedback_ang
-
+        self.e = self.keyboard_ang - self.feedback_ang
         if abs(self.e) <= self.thresh:
             self.u = 0 # to prevent accumulation (has an effect if Ki > 0)
         else:
@@ -71,14 +70,14 @@ class DriverNode(Node):
         if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
             self.speed = 0
 
-        # Current magnet value range: -15 to 75
+        # Current magnet sensor value range: -15 to 75
 
         # Magnet value range (for angle) depends on how the magnet is situated, but the hot
         # glue that held the magnet has come loose, therefore the magnet can move and the
         # range might change
 
         # Turning
-        print(f"dest: {self.ang}, curr: {self.feedback_ang}, output: {self.u}")
+        print(f"dest: {self.keyboard_ang}, curr: {self.feedback_ang}, output: {self.u}")
 
         if self.e > self.thresh:
             self.right.ChangeDutyCycle(0)
@@ -130,6 +129,8 @@ def main():
         driver_node.right.stop()
         GPIO.output(pins["forward"], GPIO.LOW)
         GPIO.output(pins["backward"], GPIO.LOW)
+        print("Shut down the forward/backward pins.")
+        
         GPIO.cleanup()
         driver_node.destroy_node()
         rclpy.shutdown()
