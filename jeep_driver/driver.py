@@ -1,8 +1,9 @@
-import Jetson.GPIO as GPIO
+import RPi.GPIO as GPIO
 import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
 from simple_pid import PID
+import os
 
 pins = {
     "red_left" : 33,
@@ -11,15 +12,46 @@ pins = {
     "backward" : 29
 }
 
+# Replacing GPIO.PWM with sysfs because of initialization issues
+class SysfsPWM:
+    def __init__(self, chip, channel):
+        self.base = f"/sys/class/pwm/pwmchip{chip}"
+        self.channel = channel
+        self.path = f"{self.base}/pwm{channel}"
+
+        if not os.path.exists(self.path):
+            with open(f"{self.base}/export", "w") as f:
+                f.write(str(channel))
+
+        self.period = 20000000  # 20 ms
+
+        with open(f"{self.path}/period", "w") as f:
+            f.write(str(self.period))
+
+        with open(f"{self.path}/enable", "w") as f:
+            f.write("1")
+
+    def duty(self, percent):
+        percent = max(0, min(100, percent))
+        duty = int(self.period * percent / 100)
+        with open(f"{self.path}/duty_cycle", "w") as f:
+            f.write(str(duty))
+
+    def stop(self):
+        with open(f"{self.path}/enable", "w") as f:
+            f.write("0")
+
+
 class DriverNode(Node):
     def __init__(self):
         # ROS2 node setup
         super().__init__('driver_node')
-        self.create_subscription(AckermannDrive, 'drive', self.callback, 10)
-        self.create_subscription(AckermannDrive, 'feedback', self.feedback_callback, 1)
-        self.timer = self.create_timer(0.01, self.update)  # 100 Hz
 
         self.pin_setup()
+
+        self.create_subscription(AckermannDrive, 'drive', self.callback, 10)
+        self.create_subscription(AckermannDrive, 'feedback', self.feedback_callback, 1)
+        self.timer = self.create_timer(0.02, self.update)  # 50 Hz
 
         self.feedback_ang = 45 # actual current angle
         self.keyboard_ang = 45 # desired angle (starting angle)
@@ -29,6 +61,8 @@ class DriverNode(Node):
         self.last_received = self.get_clock().now().nanoseconds / 1e9
         self.u = 0 # output from PID
 
+        self.gpio_ready = False # To prevent timer race condition
+
         self.pid = PID(
             Kp = 10, Ki = 5, Kd = 20, 
             setpoint = 0,
@@ -36,19 +70,16 @@ class DriverNode(Node):
         )
 
     def pin_setup(self):
-        try:
-            GPIO.setmode(GPIO.BOARD)
-            for _, pin in pins.items():
-                GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
-        except Exception as e:
-            print("GPIO setup failed:", e)
-            GPIO.cleanup()
-            raise e
-        
-        self.left = GPIO.PWM(pins["red_left"], 1000)
-        self.right = GPIO.PWM(pins["green_right"], 1000)
-        self.left.start(0)
-        self.right.start(0)
+        GPIO.setmode(GPIO.BOARD)
+
+        for _, pin in pins.items():
+            GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
+
+        # Replacing GPIO.PWM
+        self.left = SysfsPWM(0, 2) # pin 33, left
+        self.right = SysfsPWM(0, 0) # pin 32, right
+
+        self.gpio_ready = True
 
     # Ackermann Drive callback
     def callback(self, msg: AckermannDrive):
@@ -70,6 +101,9 @@ class DriverNode(Node):
         if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
             self.speed = 0
 
+        if not self.gpio_ready:
+            return
+
         # Current magnet sensor value range: -15 to 75
 
         # Magnet value range (for angle) depends on how the magnet is situated, but the hot
@@ -80,35 +114,33 @@ class DriverNode(Node):
         print(f"dest: {self.keyboard_ang}, curr: {self.feedback_ang}, output: {self.u}")
 
         if self.e > self.thresh:
-            self.right.ChangeDutyCycle(0)
+            self.right.duty(0)
 
             if abs(self.u) > 60:
-                self.left.ChangeDutyCycle(abs(self.u))
+                self.left.duty(abs(self.u))
             else:
-                self.left.ChangeDutyCycle(0)
-            
-            self.get_logger().info("Turning Left.")
+                self.left.duty(0)
+            #self.get_logger().info("Turning Left.")
 
         elif self.e < -self.thresh:
-            self.left.ChangeDutyCycle(0)
+            self.left.duty(0)
 
             if abs(self.u) > 60:
-                self.right.ChangeDutyCycle(abs(self.u))
+                self.right.duty(abs(self.u))
             else:
-                self.right.ChangeDutyCycle(0)
-            
-            self.get_logger().info("Turning Right.")
+                self.right.duty(0)
+            #self.get_logger().info("Turning Right.")
 
         else:
-            self.right.ChangeDutyCycle(0)
-            self.left.ChangeDutyCycle(0)
+            self.right.duty(0)
+            self.left.duty(0)
 
         # Driving
         if self.speed > 0:
             GPIO.output(pins["forward"], GPIO.HIGH)
             GPIO.output(pins["backward"], GPIO.LOW)
         elif self.speed < 0:
-            GPIO.output(pins["forward"], GPIO.HIGH)
+            GPIO.output(pins["forward"], GPIO.LOW)
             GPIO.output(pins["backward"], GPIO.HIGH)
         else:
             GPIO.output(pins["forward"], GPIO.LOW)
@@ -123,16 +155,20 @@ def main():
     except KeyboardInterrupt:
         driver_node.get_logger().info("Shutting down driver node.")
     finally:
-        driver_node.left.ChangeDutyCycle(0)
-        driver_node.right.ChangeDutyCycle(0)
-        GPIO.output(pins["forward"], GPIO.LOW)
-        GPIO.output(pins["backward"], GPIO.LOW)
         driver_node.timer.cancel()
+
+        driver_node.left.duty(0)
+        driver_node.right.duty(0)
+
         driver_node.left.stop()
         driver_node.right.stop()
+
+        GPIO.output(pins["forward"], GPIO.LOW)
+        GPIO.output(pins["backward"], GPIO.LOW)
         GPIO.cleanup()
+
         driver_node.destroy_node()
-        rclpy.shutdown()
-    
+
 if __name__ == '__main__':
     main()
+self.left.duty(abs(self.u))

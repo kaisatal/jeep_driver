@@ -61,7 +61,6 @@ def main():
     finally:
         feedback_node.timer.cancel()
         feedback_node.destroy_node()
-        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

@@ -131,7 +131,6 @@ def main():
         pub_thread.stop()
         restoreTerminalSettings(settings)
         node.destroy_node()
-        rclpy.shutdown()
 
 if __name__=="__main__":
     main()
