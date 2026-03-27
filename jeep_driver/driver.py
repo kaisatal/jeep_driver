@@ -171,4 +171,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-self.left.duty(abs(self.u))
