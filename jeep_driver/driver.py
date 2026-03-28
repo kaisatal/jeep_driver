@@ -167,7 +167,7 @@ class DriverNode(Node):
         # range might change
 
         # Turning
-        """if self.e > self.thresh: # To prevent oscillation
+        if self.e > self.thresh: # To prevent oscillation
             if abs(self.u) > 60: # To prevent low values straining the motor
                 self.pwm.set(abs(self.u), 0)
                 print("Turning left")
@@ -185,8 +185,6 @@ class DriverNode(Node):
 
         else:
             self.pwm.set(0, 0)
-"""
-        self.pwm.set(70, 0) # testing
 
         # Driving
         if self.speed > 0:
