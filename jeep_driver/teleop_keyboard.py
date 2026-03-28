@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import threading
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import SingleThreadedExecutor
 from ackermann_msgs.msg import AckermannDrive
 import sys
 from select import select
@@ -30,7 +31,7 @@ class PublishThread(threading.Thread):
     def __init__(self, node, rate, ang):
         super().__init__()
         self.node = node
-        self.publisher = self.node.create_publisher(AckermannDrive, 'drive', 1)
+        self.publisher = self.node.create_publisher(AckermannDrive, 'drive', 10)
         self.ang = ang
         self.speed = 0.0
         self.condition = threading.Condition()
@@ -67,13 +68,12 @@ class PublishThread(threading.Thread):
                 # Wait for a new message or timeout.
                 self.condition.wait(self.timeout)
                 # Copy state into twist message.
-                drive.steering_angle = self.ang
-                drive.speed = self.speed
+                drive.steering_angle = float(self.ang)
+                drive.speed = float(self.speed)
             
             self.publisher.publish(drive)
 
         # Stop the car when Ctrl+C is pressed
-        drive.steering_angle = self.ang
         drive.speed = 0
         self.publisher.publish(drive)
 
@@ -97,14 +97,22 @@ def restoreTerminalSettings(old_settings):
 def main():
     rclpy.init()
     node = Node('teleop_node')
+
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+    spin_thread = threading.Thread(target=executor.spin, daemon=True)
+    spin_thread.start()
+
     settings = saveTerminalSettings()
 
     ang = 45 # starting angle
     speed = 0 # not moving
     pub_thread = PublishThread(node, rate=0.0, ang=ang)
+
     try:
         print(msg)
         pub_thread.update(ang, speed) # Starting position
+
         while True:
             key = getKey(settings, 0.1)
             if key in moveBindings:
@@ -130,6 +138,7 @@ def main():
     finally:
         pub_thread.stop()
         restoreTerminalSettings(settings)
+        executor.shutdown()
         node.destroy_node()
 
 if __name__=="__main__":

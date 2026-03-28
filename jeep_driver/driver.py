@@ -215,7 +215,11 @@ def main():
 
         GPIO.output(pins["forward"], GPIO.LOW)
         GPIO.output(pins["backward"], GPIO.LOW)
-        GPIO.cleanup()
+        # No cleanup because it sets the driving pins high (hardware pull-up)
+        #GPIO.cleanup()
+        while True:
+            time.sleep(1)
+            # Second Ctrl+C only after turning off the car!
 
 if __name__ == '__main__':
     main()

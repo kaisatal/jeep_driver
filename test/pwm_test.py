@@ -2,7 +2,7 @@ import Jetson.GPIO as GPIO
 import time
 
 pins = {
-    "red_left": 33,
+    "red_left": 33, # This pin isn't working with built-in .PWM method in this specific vehicle setup
     "green_right": 32
 }
 
