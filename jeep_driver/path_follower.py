@@ -23,26 +23,22 @@ class PurePursuitNode(Node):
         # Parameters
         self.lookahead_distance = 0.8 # meters
         self.wheelbase = 0.6 # meters (TODO: measure)
-        # Magnet value (angle) range depends on how the magnet is situated, so the range might change
+
+        # Magnet value (angle) range depends on how the magnet is situated, so this range might change
         self.min_steering_deg = -20
         self.max_steering_deg = 75
 
         # State
         self.current_pose = None
-        self.path = []
+        self.path = [] # TODO: target path data here
         self.last_target_index = 0
 
-        self.create_subscription(PoseStamped, '/pcl_pose', self.pose_callback, 10)
-        self.create_subscription(Path, '/path', self.path_callback, 10)
-        self.publisher = self.create_publisher(AckermannDrive, '/cmd_drive', 10)
+        self.create_subscription(PoseStamped, 'pcl_pose', self.pose_callback, 10)
+        self.publisher = self.create_publisher(AckermannDrive, 'cmd_drive', 10)
         self.create_timer(0.05, self.control_loop)  # 20 Hz
 
     def pose_callback(self, msg):
         self.current_pose = msg
-
-    def path_callback(self, msg):
-        self.path = msg.poses
-        self.last_target_index = 0
 
     def get_lookahead_point(self):
         if not self.current_pose or not self.path:
@@ -68,16 +64,6 @@ class PurePursuitNode(Node):
 
         pose = self.current_pose.pose
         position = pose.position
-        yaw = yaw_from_quaternion(pose.orientation)
-
-        # Transform target to robot frame
-        dx = target.x - position.x
-        dy = target.y - position.y
-
-        # local_x: front when positive, back when negative
-        # local_y: left when positive, right when negative
-        local_x = math.cos(-yaw) * dx - math.sin(-yaw) * dy
-        local_y = math.sin(-yaw) * dx + math.cos(-yaw) * dy
 
         # Stop if very close to goal
         if distance(position, self.path[-1].pose.position) < 0.1:
@@ -86,8 +72,17 @@ class PurePursuitNode(Node):
             drive_msg.speed = 0.0
             self.publisher.publish(drive_msg)
             return
+
+        # Get the vector
+        dx = target.x - position.x
+        dy = target.y - position.y
+
+        yaw = yaw_from_quaternion(pose.orientation)
+
+        # Rotate the vector to be in robot frame
+        local_x = math.cos(-yaw) * dx - math.sin(-yaw) * dy # local_x: front when positive, back when negative
+        local_y = math.sin(-yaw) * dx + math.cos(-yaw) * dy # local_y: left when positive, right when negative
         
-        # Decide direction: forward or backward
         if local_x >= 0:
             speed = 1.0
         else:
@@ -97,12 +92,12 @@ class PurePursuitNode(Node):
         steering_rad = math.atan(self.wheelbase * curvature)
         steering_angle_deg = math.degrees(steering_rad)
 
-        # Clamp steering
+        # Clamp the steering angle
         steering_angle_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_angle_deg))
 
         drive_msg = AckermannDrive()
         drive_msg.steering_angle = steering_angle_deg
-        drive_msg.speed = speed # 1, 0, or -1
+        drive_msg.speed = speed
 
         self.publisher.publish(drive_msg)
 

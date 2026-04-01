@@ -22,7 +22,7 @@ def read_as5600_angle():
 
         # Combine MSB and LSB to get the 12-bit angle data
         angle_data = (msb << 8) | lsb
-        # Convert 12-bit data to degrees (0-360)
+        # Convert 12-bit data to degrees (0 - 360)
         angle_degrees = (angle_data * 360) / 4096
         return angle_degrees
 
@@ -38,15 +38,15 @@ class FeedbackNode(Node):
         self.feedback = AckermannDrive()
         self.avg_filter = [0]*50
         self.prev_ang = -1
-        self.timer = self.create_timer(0.01, self.timer_callback) # 100 Hz for steering feedback
+        self.timer = self.create_timer(0.02, self.timer_callback) # 50 Hz
     
     # Read and publish the angle from the AS5600 sensor
     def timer_callback(self):
         angle = read_as5600_angle()
-        if angle is not None and angle<360:
+        if angle is not None and angle < 360:
             self.avg_filter.pop(0)
             self.avg_filter.append(angle)
-            avg_angle = round(174-sum(self.avg_filter)/len(self.avg_filter))
+            avg_angle = round(174 - sum(self.avg_filter)/len(self.avg_filter)) # TODO: might remove the arbitrary range shift
             if avg_angle != self.prev_ang:
                 self.feedback.steering_angle = float(avg_angle)
                 self.prev_ang = avg_angle

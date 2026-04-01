@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
+from std_msgs.msg import Int32
 from simple_pid import PID
 import Jetson.GPIO as GPIO
 import threading
@@ -9,8 +10,8 @@ import time
 import os
 
 pins = {
-    "left" : 33,
-    "right" : 32,
+    #"left" : 33,
+    #"right" : 32,
     "forward" : 31,
     "backward" : 29
 }
@@ -50,7 +51,7 @@ class SysfsPWM:
         with open(f"{self.path}/enable", "w") as f:
             f.write("0")
 
-# Needed to not block ROS callbacks
+# This is needed to not block ROS2 callbacks
 class PWMWorker:
     def __init__(self):
         self.left = SysfsPWM(0, 2)
@@ -106,22 +107,28 @@ class DriverNode(Node):
         self.gpio_ready = False # To prevent timer race condition
         self.pin_setup()
 
-        self.create_subscription(AckermannDrive, 'keyboard', self.callback, 10)
+        self.create_subscription(AckermannDrive, 'keyboard', self.keyboard_callback, 10)
+        self.create_subscription(AckermannDrive, 'input_choice', self.input_choice_callback, 10)
+        self.create_subscription(AckermannDrive, 'cmd_drive', self.path_follower_callback, 10)
         self.create_subscription(AckermannDrive, 'angle_feedback', self.feedback_callback, 1)
-        self.timer = self.create_timer(0.01, self.update)  # 100 Hz
+        self.timer = self.create_timer(0.02, self.update)  # 50 Hz
+
+        # 1 - /keyboard (manual driving), 2 - /cmd_drive (autonomous driving)
+        self.input_choice = 1
 
         self.feedback_ang = 45 # from angle sensor
         self.keyboard_ang = 45 # desired angle (starting angle)
         self.thresh = 4 # allowed angle difference
         self.e = 0 # current error (keyboard_ang - feedback_ang)
+        self.u = 0 # output from PID
+
         self.speed = 0
         self.last_received = self.get_clock().now().nanoseconds / 1e9
-        self.u = 0 # output from PID
 
         self.pid = PID(
             Kp = 10, Ki = 5, Kd = 20, 
             setpoint = 0,
-            output_limits = (-98.5, 98.5) # motors do not respond to values in range ~ 99-100
+            output_limits = (-98.5, 98.5) # Motor isn't responding to values in range ~ 99-100
         )
 
         self.pwm = PWMWorker() # sysfs commands
@@ -129,25 +136,32 @@ class DriverNode(Node):
     def pin_setup(self):
         GPIO.setmode(GPIO.BOARD)
 
-        for name, pin in pins.items():
-            if name in ["left", "right"]:
-                continue # skip PWM pins
+        for pin in pins.values():
             GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
 
-        self.gpio_ready = True # Allow update() to run
+        self.gpio_ready = True
+    
+    def input_choice_callback(self, msg: Int32):
+        self.input_choice = msg.data
 
-    # Ackermann Drive callback
-    def callback(self, msg: AckermannDrive):
-        self.keyboard_ang = int(msg.steering_angle) # keyboard input angle
-        self.speed = int(msg.speed)
-        self.last_received = self.get_clock().now().nanoseconds / 1e9
+    def keyboard_callback(self, msg: AckermannDrive):
+        if self.input_choice == 1:
+            self.keyboard_ang = int(msg.steering_angle)
+            self.speed = int(msg.speed)
+            self.last_received = self.get_clock().now().nanoseconds / 1e9
+    
+    def path_follower_callback(self, msg: AckermannDrive):
+        if self.input_choice == 2:
+            self.keyboard_ang = int(msg.steering_angle)
+            self.speed = int(msg.speed)
+            self.last_received = self.get_clock().now().nanoseconds / 1e9
 
-    # MRP sensor callback
+    # Angle sensor callback
     def feedback_callback(self, msg: AckermannDrive):
         self.feedback_ang = int(msg.steering_angle) # sensor angle
         self.e = self.keyboard_ang - self.feedback_ang
         if abs(self.e) <= self.thresh:
-            self.u = 0 # to prevent accumulation (has an effect if Ki > 0)
+            self.u = 0 # to prevent accumulation (has an effect when Ki > 0)
         else:
             self.u = self.pid(self.e)
 
@@ -155,27 +169,27 @@ class DriverNode(Node):
         if not self.gpio_ready:
             return
 
-        print(f"dest: {self.keyboard_ang}, curr: {self.feedback_ang}, output: {self.u}")
+        self.get_logger().info(f"dest: {self.keyboard_ang}, curr: {self.feedback_ang}, output: {self.u}")
 
         # Turning
         if self.e > self.thresh: # To prevent oscillation from small differences
-            if abs(self.u) > 60: # To prevent low values from straining the motor
+            if abs(self.u) > 60: # To prevent sending low values to the motor
                 self.pwm.set(abs(self.u), 0)
-                print("Turning left")
+                #print("Turning left")
             else:
                 self.pwm.set(0, 0)
 
         elif self.e < -self.thresh:
             if abs(self.u) > 60:
                 self.pwm.set(0, abs(self.u))
-                print("Turning right")
+                #print("Turning right")
             else:
                 self.pwm.set(0, 0)
 
         else:
             self.pwm.set(0, 0)
 
-        # Speed reset
+        # Speed reset (as a safety buffer)
         if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
             self.speed = 0
 
@@ -199,7 +213,6 @@ def main():
         node.get_logger().info("Shutting down the Driver node.")
     finally:
         node.pwm.stop()
-        time.sleep(1)
         node.destroy_node()
 
         GPIO.output(pins["forward"], GPIO.LOW)
