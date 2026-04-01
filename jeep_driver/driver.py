@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
@@ -8,8 +9,8 @@ import time
 import os
 
 pins = {
-    "red_left" : 33,
-    "green_right" : 32,
+    "left" : 33,
+    "right" : 32,
     "forward" : 31,
     "backward" : 29
 }
@@ -105,11 +106,11 @@ class DriverNode(Node):
         self.gpio_ready = False # To prevent timer race condition
         self.pin_setup()
 
-        self.create_subscription(AckermannDrive, 'drive', self.callback, 10)
-        self.create_subscription(AckermannDrive, 'feedback', self.feedback_callback, 1)
+        self.create_subscription(AckermannDrive, 'keyboard', self.callback, 10)
+        self.create_subscription(AckermannDrive, 'angle_feedback', self.feedback_callback, 1)
         self.timer = self.create_timer(0.01, self.update)  # 100 Hz
 
-        self.feedback_ang = 45 # actual current angle
+        self.feedback_ang = 45 # from angle sensor
         self.keyboard_ang = 45 # desired angle (starting angle)
         self.thresh = 4 # allowed angle difference
         self.e = 0 # current error (keyboard_ang - feedback_ang)
@@ -129,11 +130,11 @@ class DriverNode(Node):
         GPIO.setmode(GPIO.BOARD)
 
         for name, pin in pins.items():
-            if name in ["red_left", "green_right"]:
-                continue  # skip PWM pins
+            if name in ["left", "right"]:
+                continue # skip PWM pins
             GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
 
-        self.gpio_ready = True
+        self.gpio_ready = True # Allow update() to run
 
     # Ackermann Drive callback
     def callback(self, msg: AckermannDrive):
@@ -151,29 +152,18 @@ class DriverNode(Node):
             self.u = self.pid(self.e)
 
     def update(self):
-        # Reset conditions
-        if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
-            self.speed = 0
-
         if not self.gpio_ready:
             return
 
         print(f"dest: {self.keyboard_ang}, curr: {self.feedback_ang}, output: {self.u}")
 
-        # Current magnet sensor value range: -15 to 75
-
-        # Magnet value range (for angle) depends on how the magnet is situated, but the hot
-        # glue that held the magnet has come loose, therefore the magnet can move and the
-        # range might change
-
         # Turning
-        if self.e > self.thresh: # To prevent oscillation
-            if abs(self.u) > 60: # To prevent low values straining the motor
+        if self.e > self.thresh: # To prevent oscillation from small differences
+            if abs(self.u) > 60: # To prevent low values from straining the motor
                 self.pwm.set(abs(self.u), 0)
                 print("Turning left")
             else:
                 self.pwm.set(0, 0)
-            #self.get_logger().info("Turning Left.")
 
         elif self.e < -self.thresh:
             if abs(self.u) > 60:
@@ -181,17 +171,20 @@ class DriverNode(Node):
                 print("Turning right")
             else:
                 self.pwm.set(0, 0)
-            #self.get_logger().info("Turning Right.")
 
         else:
             self.pwm.set(0, 0)
+
+        # Speed reset
+        if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
+            self.speed = 0
 
         # Driving
         if self.speed > 0:
             GPIO.output(pins["forward"], GPIO.HIGH)
             GPIO.output(pins["backward"], GPIO.LOW)
         elif self.speed < 0:
-            GPIO.output(pins["forward"], GPIO.LOW)
+            GPIO.output(pins["forward"], GPIO.HIGH)
             GPIO.output(pins["backward"], GPIO.HIGH)
         else:
             GPIO.output(pins["forward"], GPIO.LOW)
@@ -200,26 +193,21 @@ class DriverNode(Node):
 def main():
     rclpy.init()
     node = DriverNode()
-
     try:
         rclpy.spin(node)
-
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down driver node.")
-
+        node.get_logger().info("Shutting down the Driver node.")
     finally:
-        node.timer.cancel()
         node.pwm.stop()
         time.sleep(1)
         node.destroy_node()
 
         GPIO.output(pins["forward"], GPIO.LOW)
         GPIO.output(pins["backward"], GPIO.LOW)
-        # No cleanup because it sets the driving pins high (hardware pull-up)
-        #GPIO.cleanup()
+        # No GPIO.cleanup() because it would set the driving pins high (from hardware pull-up)
+        node.get_logger().info("Driving pins held low, press Ctrl+C again after car is turned off!")
         while True:
             time.sleep(1)
-            # Second Ctrl+C only after turning off the car!
 
 if __name__ == '__main__':
     main()

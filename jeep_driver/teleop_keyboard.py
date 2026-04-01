@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-import threading
 import rclpy
 from rclpy.node import Node
-from rclpy.executors import SingleThreadedExecutor
 from ackermann_msgs.msg import AckermannDrive
+import threading
 import sys
 from select import select
 import termios
 import tty
 
 msg = """
-Reading from the keyboard and Publishing to AckermannDrive!
+Reading from the keyboard and Publishing to /keyboard
 ---------------------------
 Moving around:
       w
@@ -20,62 +19,7 @@ a           d
 CTRL-C to quit
 """
 
-moveBindings = {
-        'a': -1,
-        'd': 1,
-        'w': 0,
-        's': 0
-    }
-
-class PublishThread(threading.Thread):
-    def __init__(self, node, rate, ang):
-        super().__init__()
-        self.node = node
-        self.publisher = self.node.create_publisher(AckermannDrive, 'drive', 10)
-        self.ang = ang
-        self.speed = 0.0
-        self.condition = threading.Condition()
-        self.done = False
-
-        # Set timeout to None if rate is 0 (causes new_message to wait forever
-        # for new data to publish)
-        if rate != 0.0:
-            self.timeout = 1.0 / rate
-        else:
-            self.timeout = None
-
-        self.start()
-
-    def update(self, ang, speed):
-        with self.condition:
-            self.ang = ang
-            self.speed = speed
-            self.condition.notify()
-
-    def stop(self):
-        with self.condition:
-            self.done = True
-            self.condition.notify()
-        # Waiting for the thread to finish
-        self.join()
-
-    def run(self):
-        drive = AckermannDrive()
-        while True:
-            with self.condition:
-                if self.done:
-                    break
-                # Wait for a new message or timeout.
-                self.condition.wait(self.timeout)
-                # Copy state into twist message.
-                drive.steering_angle = float(self.ang)
-                drive.speed = float(self.speed)
-            
-            self.publisher.publish(drive)
-
-        # Stop the car when Ctrl+C is pressed
-        drive.speed = 0
-        self.publisher.publish(drive)
+moveBindings = {'a', 'd', 'w', 's', ' '} # ' ' is for switching between driving controls
 
 
 def getKey(settings, timeout):
@@ -85,60 +29,79 @@ def getKey(settings, timeout):
         key = sys.stdin.read(1)
     else:
         key = ''
+    # Restore terminal settings
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
     return key
 
-def saveTerminalSettings():
-    return termios.tcgetattr(sys.stdin)
+class KeyboardNode(Node):
+    def __init__(self):
+        super().__init__('keyboard_node')
+        
+        self.publisher = self.create_publisher(AckermannDrive, 'keyboard', 10)
+        self.timer = self.create_timer(0.1, self.publish_cmd) # 10 Hz
+
+        # Parameters
+        self.ang = 45
+        self.speed = 0.0
+        # Magnet value (angle) range depends on how the magnet is situated, so the range might change
+        self.min_steering_deg = -20
+        self.max_steering_deg = 75
+
+        # To restore terminal settings afterwards
+        self.settings = termios.tcgetattr(sys.stdin)
+
+        # Keyboard thread
+        self.running = True
+        self.input_thread = threading.Thread(target=self.keyboard_loop, daemon=True)
+        self.input_thread.start()
+
+        print(msg) # Info message
+
+    def publish_cmd(self):
+        drive_msg = AckermannDrive()
+        drive_msg.steering_angle = float(self.ang)
+        drive_msg.speed = float(self.speed)
+        self.publisher.publish(drive_msg)
+
+        self.speed = 0.0 # Reset
+    
+    def keyboard_loop(self):
+        try:
+            while self.running:
+                key = getKey(self.settings, 0.1)
+
+                if key in moveBindings:
+                    if key == 'd' and self.ang > self.min_steering_deg:
+                        self.ang -= 5
+                    elif key == 'a' and self.ang < self.max_steering_deg:
+                        self.ang += 5
+                    elif key == 'w':
+                        self.speed = 1.0
+                    elif key == 's':
+                        self.speed = -1.0
+
+                    self.get_logger().info("Keyboard angle:", self.ang)
+
+                elif key == '\x03':  # Ctrl+C
+                    break
+
+        except Exception as e:
+            print(e)
 
 def restoreTerminalSettings(old_settings):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
 def main():
     rclpy.init()
-    node = Node('teleop_node')
-
-    executor = SingleThreadedExecutor()
-    executor.add_node(node)
-    spin_thread = threading.Thread(target=executor.spin, daemon=True)
-    spin_thread.start()
-
-    settings = saveTerminalSettings()
-
-    ang = 45 # starting angle
-    speed = 0 # not moving
-    pub_thread = PublishThread(node, rate=0.0, ang=ang)
-
+    node = KeyboardNode()
     try:
-        print(msg)
-        pub_thread.update(ang, speed) # Starting position
-
-        while True:
-            key = getKey(settings, 0.1)
-            if key in moveBindings:
-                # range is -20 to 75
-                if key == 'd' and ang > -20:
-                    ang -= 5
-                elif key == 'a' and ang < 75:
-                    ang += 5
-                elif key == 'w':
-                    speed = 1
-                elif key == 's':
-                    speed = -1
-                print("Angle: ", ang)
-            else:
-                if key == '\x03':  # Ctrl+C
-                    break
-            
-            pub_thread.update(ang, speed)
-            speed = 0
-
-    except Exception as e:
-        print(e)
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down Keyboard node.")
     finally:
-        pub_thread.stop()
-        restoreTerminalSettings(settings)
-        executor.shutdown()
+        node.running = False
+        # Restore terminal settings
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, node.settings)
         node.destroy_node()
 
 if __name__=="__main__":

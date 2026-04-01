@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
@@ -32,7 +33,8 @@ def read_as5600_angle():
 class FeedbackNode(Node):
     def __init__(self):
         super().__init__('feedback_node')
-        self.pub = self.create_publisher(AckermannDrive, 'feedback', 1)
+
+        self.pub = self.create_publisher(AckermannDrive, 'angle_feedback', 1)
         self.feedback = AckermannDrive()
         self.avg_filter = [0]*50
         self.prev_ang = -1
@@ -52,15 +54,13 @@ class FeedbackNode(Node):
 
 def main():
     rclpy.init()
-    feedback_node = FeedbackNode()
-
+    node = FeedbackNode()
     try:
-        rclpy.spin(feedback_node)
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        feedback_node.get_logger().info("Shutting down feedback node.")
+        node.get_logger().info("Shutting down the Feedback node.")
     finally:
-        feedback_node.timer.cancel()
-        feedback_node.destroy_node()
+        node.destroy_node()
 
 if __name__ == '__main__':
     main()
