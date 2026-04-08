@@ -42,7 +42,7 @@ class PurePursuitNode(Node):
 
         # Parameters
         self.lookahead_distance = 0.8 # meters
-        self.wheelbase = 0.6 # meters (TODO: measure)
+        self.wheelbase = 0.6 # meters
 
         # Magnet value (angle) range depends on how the magnet is situated, so this range might change
         self.min_steering_deg = -20
