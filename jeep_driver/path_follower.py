@@ -16,6 +16,26 @@ def distance(a, b):
     dy = a.y - b.y
     return math.hypot(dx, dy)
 
+# For manual path creation
+def make_pose(x, y, yaw=0.0, frame_id="map"):
+    pose = PoseStamped()
+    pose.header.frame_id = frame_id
+
+    pose.pose.position.x = x
+    pose.pose.position.y = y
+    pose.pose.position.z = 0.0
+
+    # yaw to quaternion (z-axis rotation)
+    qz = math.sin(yaw / 2.0)
+    qw = math.cos(yaw / 2.0)
+
+    pose.pose.orientation.x = 0.0
+    pose.pose.orientation.y = 0.0
+    pose.pose.orientation.z = qz
+    pose.pose.orientation.w = qw
+    
+    return pose
+
 class PurePursuitNode(Node):
     def __init__(self):
         super().__init__('path_follower_node')
@@ -30,9 +50,22 @@ class PurePursuitNode(Node):
 
         # State
         self.current_pose = None
-        self.path = [] # TODO: target path data here
-        self.last_target_index = 0
 
+        # Manual path creation
+        self.path = Path()
+        self.path.header.frame_id = "map"
+        # Sample path: forward 3 m, right 2 m
+        coords = [
+            (0.0, 0.0),
+            (1.0, 0.0),
+            (2.0, 0.0),
+            (3.0, 0.0),
+            (3.0, -1.0),
+            (3.0, -2.0),
+        ]
+        self.path.poses = [make_pose(x, y) for x, y in coords]
+
+        self.last_target_index = 0
         self.create_subscription(PoseStamped, 'pcl_pose', self.pose_callback, 10)
         self.publisher = self.create_publisher(AckermannDrive, 'cmd_drive', 10)
         self.create_timer(0.05, self.control_loop)  # 20 Hz
