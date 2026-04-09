@@ -108,7 +108,7 @@ class DriverNode(Node):
         self.pin_setup()
 
         self.create_subscription(AckermannDrive, 'keyboard', self.keyboard_callback, 10)
-        self.create_subscription(AckermannDrive, 'input_choice', self.input_choice_callback, 10)
+        self.create_subscription(Int32, 'input_choice', self.input_choice_callback, 10)
         self.create_subscription(AckermannDrive, 'cmd_drive', self.path_follower_callback, 10)
         self.create_subscription(AckermannDrive, 'angle_feedback', self.feedback_callback, 1)
         self.timer = self.create_timer(0.02, self.update)  # 50 Hz

@@ -22,7 +22,7 @@ CTRL-C to quit
 
 moveBindings = {'a', 'd', 'w', 's'}
 
-input_choice = {1: "/keyboard", 2: "/cmd_drive"} # For informative logging
+input_choice = {1: "/keyboard_drive", 2: "/cmd_drive"} # For informative logging
 
 
 def getKey(settings, timeout):
@@ -40,7 +40,7 @@ class KeyboardNode(Node):
     def __init__(self):
         super().__init__('keyboard_node')
         
-        self.keyboard_pub = self.create_publisher(AckermannDrive, 'keyboard', 10)
+        self.keyboard_pub = self.create_publisher(AckermannDrive, 'keyboard_drive', 10)
         self.keyboard_timer = self.create_timer(0.1, self.publish_drive) # 10 Hz
         self.choice_pub = self.create_publisher(Int32, 'input_choice', 10)
         self.choice_timer = self.create_timer(0.5, self.publish_choice) # 2 Hz

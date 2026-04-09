@@ -67,7 +67,7 @@ class PurePursuitNode(Node):
 
         self.last_target_index = 0
         self.create_subscription(PoseStamped, 'pcl_pose', self.pose_callback, 10)
-        self.publisher = self.create_publisher(AckermannDrive, 'cmd_drive', 10)
+        self.publisher = self.create_publisher(AckermannDrive, 'path_drive', 10)
         self.create_timer(0.05, self.control_loop)  # 20 Hz
 
     def pose_callback(self, msg):
