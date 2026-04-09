@@ -1,0 +1,39 @@
+Terminal 1:
+sudo docker run -it --rm \
+  --name jeep_container \
+  --network host \
+  --ipc host \
+  --gpus all \
+  --runtime nvidia \
+  --privileged \
+  -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+  -e ROS_DOMAIN_ID=0 \
+  -e ROS_LOCALHOST_ONLY=0 \
+  -e CYCLONEDDS_URI=file:///cyclonedds.xml \
+  -v /home/nano/ros_ws/cyclonedds.xml:/cyclonedds.xml \
+  -v /home/nano/ros_ws:/ros_ws \
+  -v /home/nano/bags:/bags \
+  -v /sys:/sys \
+  jeep_ros2
+
+ros2 run velodyne_driver velodyne_driver_node \
+--ros-args \
+-p device_ip:=192.168.2.12 \
+-p port:=2369 \
+-p model:=VLP16 \
+-p interface:=eth1 (või eth0)
+
+Terminal 2:
+docker exec -it jeep_container bash
+
+ros2 run velodyne_pointcloud velodyne_transform_node \
+--ros-args \
+-p model:=VLP16 \
+-p calibration:=/opt/ros/humble/share/velodyne_pointcloud/params/VLP16db.yaml
+
+
+Debug:
+Lidari IP Nanole:
+sudo ip addr add 192.168.2.100/24 dev eth1 (või eth0)
+
+('ros2 topic hz /velodyne_points' peab andma average rate ~10)

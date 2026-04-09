@@ -1,0 +1,35 @@
+Terminal 1:
+sudo docker run -it --rm \
+  --name jeep_container \
+  --network host \
+  --ipc host \
+  --gpus all \
+  --runtime nvidia \
+  --privileged \
+  -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+  -e ROS_DOMAIN_ID=0 \
+  -e ROS_LOCALHOST_ONLY=0 \
+  -e CYCLONEDDS_URI=file:///cyclonedds.xml \
+  -v /home/nano/ros_ws/cyclonedds.xml:/cyclonedds.xml \
+  -v /home/nano/ros_ws:/ros_ws \
+  -v /home/nano/bags:/bags \
+  -v /sys:/sys \
+  jeep_ros2
+
+colcon build
+
+source install/setup.bash
+
+ros2 launch jeep_driver driver.launch.py
+
+Terminal 2:
+docker exec -it jeep_container bash
+
+ros2 run jeep_driver teleop_node
+
+
+Debug:
+Kui ütleb pins busy, siis (nano peal):
+for i in 38 149 168 200; do
+  echo $i | sudo tee /sys/class/gpio/unexport
+done

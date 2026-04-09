@@ -1,0 +1,16 @@
+Terminal 1:
+sudo docker run -it --rm \
+  --name localization_container \
+  --network host \
+  --ipc=host \
+  --pid=host \
+  --privileged \
+  -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+  -e ROS_DOMAIN_ID=0 \
+  -e ROS_LOCALHOST_ONLY=0 \
+  -e CYCLONEDDS_URI=file:///cyclonedds.xml \
+  -v /home/ubuntu/ros2_ws/cyclonedds.xml:/cyclonedds.xml \
+  -v /home/ubuntu/map:/map \
+  localization_ros2
+
+ros2 launch lidar_localization_ros2 lidar_localization.launch.py

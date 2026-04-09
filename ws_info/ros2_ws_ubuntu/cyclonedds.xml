@@ -1,0 +1,24 @@
+<CycloneDDS>
+  <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="wlp59s0"/>
+      </Interfaces>
+      <AllowMulticast>true</AllowMulticast>
+    </General>
+
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <Peers>
+        <!-- Jetson Nano hotspot -->
+        <Peer address="10.42.0.1"/>
+      </Peers>
+    </Discovery>
+
+    <Internal>
+      <Watermarks>
+        <WhcHigh>500kB</WhcHigh>
+      </Watermarks>
+    </Internal>
+  </Domain>
+</CycloneDDS>
