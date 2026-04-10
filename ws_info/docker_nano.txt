@@ -1,3 +1,9 @@
+Lidari IP Nanole (peab iga kord tegema):
+sudo ip addr add 192.168.2.100/24 dev eth1 (või eth0)
+
+Vajadusel:
+docker build -t jeep_ros2 .
+
 Terminal 1:
 sudo docker run -it --rm \
   --name jeep_container \
@@ -31,9 +37,26 @@ ros2 run velodyne_pointcloud velodyne_transform_node \
 -p model:=VLP16 \
 -p calibration:=/opt/ros/humble/share/velodyne_pointcloud/params/VLP16db.yaml
 
+Terminal 3:
+docker exec -it jeep_container bash
+
+(Check: 'ros2 topic hz /velodyne_points' peab andma average rate ~10)
+
+Variant 1) Kaardi jaoks bag-faili salvestamine:
+	ros2 bag record -o /bags/lidar_run1 /velodyne_packets /velodyne_points
+
+
+Variant 2) Auto juhtimine:
+	ros2 run jeep_driver keyboard_node
+
+	Terminal 4:
+	docker exec -it jeep_container bash
+	
+	ros2 launch jeep_driver jeep_driver.launch.py
+
 
 Debug:
-Lidari IP Nanole:
-sudo ip addr add 192.168.2.100/24 dev eth1 (või eth0)
-
-('ros2 topic hz /velodyne_points' peab andma average rate ~10)
+Kui GPIO pins busy, siis (nano peal):
+for i in 38 149 168 200; do
+  echo $i | sudo tee /sys/class/gpio/unexport
+done

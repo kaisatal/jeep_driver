@@ -1,3 +1,6 @@
+Vajadusel:
+sudo docker build -t localization_ros2 .
+
 Terminal 1:
 sudo docker run -it --rm \
   --name localization_container \
@@ -14,3 +17,8 @@ sudo docker run -it --rm \
   localization_ros2
 
 ros2 launch lidar_localization_ros2 lidar_localization.launch.py
+
+Terminal 2:
+sudo docker exec -it localization_container bash
+
+ros2 launch jeep_driver drive_logic.launch.py
