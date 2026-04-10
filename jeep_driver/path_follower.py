@@ -54,14 +54,12 @@ class PurePursuitNode(Node):
         # Manual path creation
         self.path = Path()
         self.path.header.frame_id = "map"
-        # Sample path: forward 3 m, right 2 m
+        # Sample path: forward 3 m
         coords = [
             (0.0, 0.0),
             (1.0, 0.0),
             (2.0, 0.0),
-            (3.0, 0.0),
-            (3.0, -1.0),
-            (3.0, -2.0),
+            (3.0, 0.0)
         ]
         self.path.poses = [make_pose(x, y) for x, y in coords]
 
