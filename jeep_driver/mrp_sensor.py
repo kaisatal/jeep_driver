@@ -36,9 +36,9 @@ class FeedbackNode(Node):
 
         self.pub = self.create_publisher(AckermannDrive, 'angle_feedback', 1) # Only the latest measurement is valid
         self.feedback = AckermannDrive()
-        self.avg_filter = [0]*50
-        self.prev_ang = -1
-        self.timer = self.create_timer(0.02, self.timer_callback) # 50 Hz
+        self.avg_filter = [0]*10
+        self.prev_ang = 45
+        self.timer = self.create_timer(0.1, self.timer_callback) # 10 Hz
     
     # Read and publish the angle from the AS5600 sensor
     def timer_callback(self):

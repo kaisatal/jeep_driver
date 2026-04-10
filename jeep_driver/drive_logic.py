@@ -20,7 +20,7 @@ class DriveLogicNode(Node):
         self.last_path_msg = AckermannDrive()
         
         # Timer for publishing output
-        self.timer = self.create_timer(0.02, self.publish_cmd)  # 50 Hz
+        self.timer = self.create_timer(0.1, self.publish_cmd)  # 10 Hz
     
     def input_choice_callback(self, msg: Int32):
         self.input_choice = msg.data
