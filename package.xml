@@ -4,9 +4,8 @@
   <version>0.0.0</version>
   <description>The jeep_driver package</description>
 
-  <maintainer email="taltskaisa@gmail.com">Kaisa Talts</maintainer>
   <license>TODO</license>
-  <author email="iryna.gurova@gmail.com">Iryna Hurova</author>
+  <author email="taltskaisa@gmail.com">Kaisa Talts</author>
 
   <buildtool_depend>ament_python</buildtool_depend>
 

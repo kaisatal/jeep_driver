@@ -99,10 +99,10 @@ class PWMWorker:
         self.right.stop()
 
 
-class DriverNode(Node):
+class JeepDriverNode(Node):
     def __init__(self):
         # ROS2 node setup
-        super().__init__('driver_node')
+        super().__init__('jeep_driver_node')
 
         self.gpio_ready = False # To prevent timer race condition
         self.pin_setup()
@@ -206,11 +206,11 @@ class DriverNode(Node):
 
 def main():
     rclpy.init()
-    node = DriverNode()
+    node = JeepDriverNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down the Driver node.")
+        node.get_logger().info("Shutting down the Jeep Driver node.")
     finally:
         node.pwm.stop()
         node.destroy_node()

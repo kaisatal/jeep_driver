@@ -5,8 +5,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='jeep_driver',
-            executable='driver_node',
-            name='driver_node',
+            executable='jeep_driver_node',
+            name='jeep_driver_node',
             output='screen'
         ),
         Node(
