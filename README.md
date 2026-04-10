@@ -1,28 +1,67 @@
 # Jeep Raptor Driver
 
-This repository contains the Jeep Raptor driver.
+ROS 2 Humble Python package for controlling the Jeep Raptor vehicle through Jetson Nano.
+Includes manual teleoperation through keyboard and lidar-based autonomous driving using Velodyne VLP-16.
 
-### Setup:
-* Jetson Nano + ROS 2 Humble
-* Ubuntu + ROS 2 Humble
+---
 
-### Nodes:
-* _**feedback_node**_ (mrp_sensor.py) - reads values from the MRP sensor attached to the wheel of the Jeep and publishes to the _/feedback_ topic. The angle values can range from -20 to 75.
-* _**teleop_node**_ (teleop_keyboard.py) - publishes Ackermann Drive messages to the _/drive_ topic with target steering angle (from 0 to 70) and speed (-1/0/1).
-* _**jeep_driver_node**_ (driver.py) - subscrives to _/feedback_ and _/drive_ topic and using the PID controller adjusts the steering angle of the Jeep and sets the movement speed (-1 - backward, 0 - stop, 1 - forward).
-* ...
+## Overview
 
-### Set up the workspace and test:
+The system consists of five ROS 2 nodes:
+
+- `jeep_driver_node` — low-level motor and steering control (GPIO + PWM)
+- `feedback_node` — steering angle sensor (AS5600 via I2C)
+- `path_follower_node` — pure pursuit controller
+- `drive_logic_node` — selects between manual and autonomous input
+- `teleop_keyboard_node` — keyboard control interface
+
+Launching is separated into 2 files:
+
+- `jeep_driver.launch.py` — jeep driver + sensor (Jetson Nano)
+- `drive_logic.launch.py` — control logic decisions (this can be on a separate machine)
+
+---
+
+## Workspace setup:
 
 ```bash
-$ TODO
+$ cd ~/ros2_ws/src
+$ # Place this package here
 ```
-In Terminal 1:
+
+Build:
 ```bash
-$ TODO
+$ source /opt/ros/humble/setup.bash
+$ cd ~/ros2_ws
+$ colcon build
+$ source install/setup.bash
 ```
 
-In Terminal 2:
+### Jetson Nano with ROS 2 Humble:
+Low-level driver + sensor nodes:
 ```bash
-$ TODO
+$ ros2 launch jeep_driver jeep_driver.launch.py
+```
+
+Keyboard control node:
+```bash
+$ ros2 run jeep_driver keyboard_node
+```
+Controls:
+
+w → forward
+
+s → reverse
+
+a → left
+
+d → right
+
+SPACE → toggle manual/autonomous driving
+
+
+### Another device with ROS 2 Humble:
+Drive logic nodes:
+```bash
+$ ros2 launch jeep_driver drive_logic.launch.py
 ```

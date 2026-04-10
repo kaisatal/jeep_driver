@@ -12,7 +12,7 @@ class DriveLogicNode(Node):
         self.create_subscription(AckermannDrive, 'path_drive', self.path_callback, 10)
         self.create_subscription(AckermannDrive, 'keyboard_drive', self.keyboard_callback, 10)
         self.create_subscription(Int32, 'input_choice', self.input_choice_callback, 10)
-        self.publisher = self.create_publisher(AckermannDrive, 'cmd_drive', 10)
+        self.pub = self.create_publisher(AckermannDrive, 'cmd_drive', 10)
         
         # 1 - /keyboard_drive (manual driving), 2 - /path_drive (autonomous driving)
         self.input_choice = 1
@@ -47,7 +47,7 @@ class DriveLogicNode(Node):
             cmd.steering_angle = 45 # middle
             cmd.speed = 0.0
 
-        self.cmd_pub.publish(cmd)
+        self.pub.publish(cmd)
 
 def main():
     rclpy.init()

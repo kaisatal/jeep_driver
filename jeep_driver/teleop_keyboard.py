@@ -88,10 +88,10 @@ class KeyboardNode(Node):
                 if key in moveBindings:
                     if key == 'd' and self.ang > self.min_steering_deg:
                         self.ang -= 5
-                        self.get_logger().info("Angle set to: ", self.ang)
+                        self.get_logger().info(f"Angle set to: {self.ang}")
                     elif key == 'a' and self.ang < self.max_steering_deg:
                         self.ang += 5
-                        self.get_logger().info("Angle set to: ", self.ang)
+                        self.get_logger().info(f"Angle set to: {self.ang}")
                     elif key == 'w':
                         self.speed = 1.0
                         self.get_logger().info("Speed set to: 1")
@@ -107,7 +107,7 @@ class KeyboardNode(Node):
                         self.choice_value = 1
                     
                     # 1 - /keyboard_drive, 2 - /cmd_drive
-                    self.get_logger().info("Input choice set to: ", input_choice[self.choice_value])
+                    self.get_logger().info(f"Input choice set to: {input_choice[self.choice_value]}")
 
                 elif key == '\x03':  # Ctrl+C
                     break

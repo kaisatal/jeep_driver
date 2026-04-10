@@ -67,7 +67,7 @@ class PurePursuitNode(Node):
 
         self.last_target_index = 0
         self.create_subscription(PoseStamped, 'pcl_pose', self.pose_callback, 10)
-        self.publisher = self.create_publisher(AckermannDrive, 'path_drive', 10)
+        self.pub = self.create_publisher(AckermannDrive, 'path_drive', 10)
         self.create_timer(0.05, self.control_loop)  # 20 Hz
 
     def pose_callback(self, msg):
@@ -103,7 +103,7 @@ class PurePursuitNode(Node):
             drive_msg = AckermannDrive()
             drive_msg.steering_angle = 0.0
             drive_msg.speed = 0.0
-            self.publisher.publish(drive_msg)
+            self.pub.publish(drive_msg)
             return
 
         # Get the vector
@@ -132,7 +132,7 @@ class PurePursuitNode(Node):
         drive_msg.steering_angle = steering_angle_deg
         drive_msg.speed = speed
 
-        self.publisher.publish(drive_msg)
+        self.pub.publish(drive_msg)
 
 
 def main():
