@@ -14,15 +14,17 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Kaisa Talts',
-    maintainer_email='taltskaisa@gmail.com',
+    author='Kaisa Talts',
+    author_email='taltskaisa@gmail.com',
     description='The jeep_driver package',
     license='TODO',
     entry_points={
         'console_scripts': [
-            'driver_node = jeep_driver.driver:main',
+            'jeep_driver_node = jeep_driver.jeep_driver:main',
             'feedback_node = jeep_driver.mrp_sensor:main',
-            'teleop_node = jeep_driver.teleop_keyboard:main',
+            'keyboard_node = jeep_driver.teleop_keyboard:main',
+            'path_follower_node = jeep_driver.path_follower:main',
+            'drive_logic_node = jeep_driver.drive_logic:main',
         ],
     },
 )

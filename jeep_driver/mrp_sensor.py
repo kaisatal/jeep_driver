@@ -34,7 +34,7 @@ class FeedbackNode(Node):
     def __init__(self):
         super().__init__('feedback_node')
 
-        self.pub = self.create_publisher(AckermannDrive, 'angle_feedback', 1)
+        self.pub = self.create_publisher(AckermannDrive, 'angle_feedback', 1) # Only the latest measurement is valid
         self.feedback = AckermannDrive()
         self.avg_filter = [0]*50
         self.prev_ang = -1
@@ -58,7 +58,7 @@ def main():
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down the Feedback node.")
+        node.get_logger().info("Shutting down Feedback node.")
     finally:
         node.destroy_node()
 

@@ -10,14 +10,16 @@ import termios
 import tty
 
 msg = """
-Reading from the keyboard and Publishing to /keyboard
----------------------------
+Reading from the keyboard and Publishing to /keyboard_drive and /input_choice
+--------------
 Moving around:
       w
 a           d
       s
+--------------
+Toggle manual/autonomous driving: SPACEBAR
 
-CTRL-C to quit
+Ctrl+C to quit
 """
 
 moveBindings = {'a', 'd', 'w', 's'}
@@ -104,7 +106,7 @@ class KeyboardNode(Node):
                     else:
                         self.choice_value = 1
                     
-                    # 1 - /keyboard, 2 - /cmd_drive
+                    # 1 - /keyboard_drive, 2 - /cmd_drive
                     self.get_logger().info("Input choice set to: ", input_choice[self.choice_value])
 
                 elif key == '\x03':  # Ctrl+C
@@ -122,7 +124,7 @@ def main():
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down the Keyboard node.")
+        node.get_logger().info("Shutting down Keyboard node.")
     finally:
         node.running = False
         # Restore terminal settings

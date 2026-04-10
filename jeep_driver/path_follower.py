@@ -141,7 +141,7 @@ def main():
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down the Path Follower node.")
+        node.get_logger().info("Shutting down Path Follower node.")
     finally:
         node.destroy_node()
 

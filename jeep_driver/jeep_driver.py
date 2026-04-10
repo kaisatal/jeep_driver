@@ -2,7 +2,6 @@
 import rclpy
 from rclpy.node import Node
 from ackermann_msgs.msg import AckermannDrive
-from std_msgs.msg import Int32
 from simple_pid import PID
 import Jetson.GPIO as GPIO
 import threading
@@ -107,19 +106,15 @@ class JeepDriverNode(Node):
         self.gpio_ready = False # To prevent timer race condition
         self.pin_setup()
 
-        self.create_subscription(AckermannDrive, 'keyboard', self.keyboard_callback, 10)
-        self.create_subscription(Int32, 'input_choice', self.input_choice_callback, 10)
-        self.create_subscription(AckermannDrive, 'cmd_drive', self.path_follower_callback, 10)
+        self.create_subscription(AckermannDrive, 'cmd_drive', self.cmd_callback, 10)
         self.create_subscription(AckermannDrive, 'angle_feedback', self.feedback_callback, 1)
         self.timer = self.create_timer(0.02, self.update)  # 50 Hz
 
-        # 1 - /keyboard (manual driving), 2 - /cmd_drive (autonomous driving)
-        self.input_choice = 1
-
+        # PID variables
         self.feedback_ang = 45 # from angle sensor
-        self.keyboard_ang = 45 # desired angle (starting angle)
+        self.target_ang = 45 # desired angle (starting angle)
         self.thresh = 4 # allowed angle difference
-        self.e = 0 # current error (keyboard_ang - feedback_ang)
+        self.e = 0 # current error (target_ang - feedback_ang)
         self.u = 0 # output from PID
 
         self.speed = 0
@@ -135,31 +130,20 @@ class JeepDriverNode(Node):
 
     def pin_setup(self):
         GPIO.setmode(GPIO.BOARD)
-
         for pin in pins.values():
             GPIO.setup(pin, GPIO.OUT, initial=GPIO.LOW)
-
         self.gpio_ready = True
     
-    def input_choice_callback(self, msg: Int32):
-        self.input_choice = msg.data
-
-    def keyboard_callback(self, msg: AckermannDrive):
-        if self.input_choice == 1:
-            self.keyboard_ang = int(msg.steering_angle)
-            self.speed = int(msg.speed)
-            self.last_received = self.get_clock().now().nanoseconds / 1e9
     
-    def path_follower_callback(self, msg: AckermannDrive):
-        if self.input_choice == 2:
-            self.keyboard_ang = int(msg.steering_angle)
-            self.speed = int(msg.speed)
-            self.last_received = self.get_clock().now().nanoseconds / 1e9
+    def cmd_callback(self, msg: AckermannDrive):
+        self.target_ang = int(msg.steering_angle)
+        self.speed = int(msg.speed)
+        self.last_received = self.get_clock().now().nanoseconds / 1e9
 
     # Angle sensor callback
     def feedback_callback(self, msg: AckermannDrive):
         self.feedback_ang = int(msg.steering_angle) # sensor angle
-        self.e = self.keyboard_ang - self.feedback_ang
+        self.e = self.target_ang - self.feedback_ang
         if abs(self.e) <= self.thresh:
             self.u = 0 # to prevent accumulation (has an effect when Ki > 0)
         else:
@@ -169,7 +153,7 @@ class JeepDriverNode(Node):
         if not self.gpio_ready:
             return
 
-        self.get_logger().info(f"dest: {self.keyboard_ang}, curr: {self.feedback_ang}, output: {self.u}")
+        self.get_logger().info(f"target: {self.target_ang}, curr: {self.feedback_ang}, output: {self.u}")
 
         # Turning
         if self.e > self.thresh: # To prevent oscillation from small differences
@@ -210,7 +194,7 @@ def main():
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Shutting down the Jeep Driver node.")
+        node.get_logger().info("Shutting down Jeep Driver node.")
     finally:
         node.pwm.stop()
         node.destroy_node()
