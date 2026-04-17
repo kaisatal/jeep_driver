@@ -93,9 +93,7 @@ class PurePursuitNode(Node):
         # Sample path: forward 3 m
         coords = [
             (0.0, 0.0),
-            (0.0, 1.0),
-            (0.0, 2.0),
-            (0.0, 3.0)
+            (0.0, 0.01)
         ]
         self.path.poses = [make_pose(x, y) for x, y in coords]
 
@@ -146,6 +144,7 @@ class PurePursuitNode(Node):
 
         # Stop if very close to goal
         if distance(position, goal) < 0.1:
+            self.get_logger().info("Reached end of Path")
             drive_msg = AckermannDrive()
             drive_msg.steering_angle = 0.0
             drive_msg.speed = 0.0
