@@ -144,13 +144,13 @@ class PurePursuitNode(Node):
         goal = poses[-1].pose.position
 
         # Stop if very close to goal
-        if distance(position, goal) < 0.5:
+        if distance(position, goal) < 1.0:
             self.get_logger().info("Reached end of Path")
             drive_msg = AckermannDrive()
             drive_msg.steering_angle = 0.0
             drive_msg.speed = 0.0
             self.pub.publish(drive_msg)
-            return
+            raise KeyboardInterrupt # just needs to shut down
 
         # Get the vector
         dx = target.x - position.x
