@@ -168,10 +168,10 @@ class PurePursuitNode(Node):
 
         curvature = 2.0 * local_y / (self.lookahead_distance ** 2)
         steering_rad = math.atan(self.wheelbase * curvature)
-        steering_angle_deg = math.degrees(steering_rad)
+        steering_deg = math.degrees(steering_rad)
 
         # Clamp the steering angle
-        steering_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_angle_deg))
+        steering_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_deg))
 
         drive_msg = AckermannDrive()
         drive_msg.steering_angle = steering_deg
