@@ -159,8 +159,8 @@ class PurePursuitNode(Node):
         yaw = yaw_from_quaternion(pose.orientation)
 
         # Rotate the vector to be in robot frame
-        local_forward =  math.sin(yaw)*dx + math.cos(yaw)*dy # map has y as forward
-        local_lateral = math.cos(yaw)*dx - math.sin(yaw)*dy
+        local_lateral =  math.sin(yaw)*dx + math.cos(yaw)*dy
+        local_forward = math.cos(yaw)*dx - math.sin(yaw)*dy # map has y as forward
         
         if local_forward >= 0:
             speed = 1.0
