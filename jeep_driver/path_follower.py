@@ -73,8 +73,8 @@ class PurePursuitNode(Node):
         self.wheelbase = 0.6 # meters
 
         # Magnet value (angle) range depends on how the magnet is situated, so this range might change
-        self.min_steering_deg = -20
-        self.max_steering_deg = 75
+        self.min_steering_deg = -20.0
+        self.max_steering_deg = 75.0
 
         # State
         self.current_pose = None
