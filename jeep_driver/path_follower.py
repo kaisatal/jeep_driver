@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+from rclpy.serialization import deserialize_message
 from ackermann_msgs.msg import AckermannDrive
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 import math
+import rosbag2_py
 
 def yaw_from_quaternion(q):
     siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
@@ -16,25 +18,26 @@ def distance(a, b):
     dy = a.y - b.y
     return math.hypot(dx, dy)
 
-# For manual path creation
-def make_pose(x, y, yaw=0.0, frame_id="map"):
-    pose = PoseStamped()
-    pose.header.frame_id = frame_id
 
-    pose.pose.position.x = x
-    pose.pose.position.y = y
-    pose.pose.position.z = 0.0
+def read_last_path(bag_uri):
+    storage_options = rosbag2_py.StorageOptions(
+        uri=bag_uri,
+        storage_id='sqlite3'
+    )
+    converter_options = rosbag2_py.ConverterOptions('', '')
 
-    # yaw to quaternion (z-axis rotation)
-    qz = math.sin(yaw / 2.0)
-    qw = math.cos(yaw / 2.0)
+    reader = rosbag2_py.SequentialReader()
+    reader.open(storage_options, converter_options)
 
-    pose.pose.orientation.x = 0.0
-    pose.pose.orientation.y = 0.0
-    pose.pose.orientation.z = qz
-    pose.pose.orientation.w = qw
-    
-    return pose
+    last_path = None
+
+    while reader.has_next():
+        topic, data, t = reader.read_next()
+        if topic == '/path':
+            msg = deserialize_message(data, Path)
+            last_path = msg
+
+    return last_path
 
 class PurePursuitNode(Node):
     def __init__(self):
@@ -51,17 +54,8 @@ class PurePursuitNode(Node):
         # State
         self.current_pose = None
 
-        # Manual path creation
-        self.path = Path()
-        self.path.header.frame_id = "map"
-        # Sample path: forward 3 m
-        coords = [
-            (0.0, 0.0),
-            (0.0, 1.0),
-            (0.0, 2.0),
-            (0.0, 3.0)
-        ]
-        self.path.poses = [make_pose(x, y) for x, y in coords]
+        # Last message from /path (nav_msgs/Path)
+        self.path = read_last_path('last_path_bag')
 
         self.last_target_index = 0
         self.create_subscription(PoseStamped, 'pcl_pose', self.pose_callback, 10)

@@ -21,4 +21,8 @@ ros2 launch lidar_localization_ros2 lidar_localization.launch.py
 Terminal 2:
 sudo docker exec -it localization_container bash
 
-ros2 launch jeep_driver drive_logic.launch.py
+Variant 1) lokalisatsioon (/path sõnumi loomine):
+    ros2 run jeep_driver last_path_recorder_node
+
+Variant 2) trajektoori järgimine (kasutab /path sõnumit):
+    ros2 launch jeep_driver drive_logic.launch.py

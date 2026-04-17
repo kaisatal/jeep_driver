@@ -5,7 +5,7 @@
   <description>The jeep_driver package</description>
 
   <maintainer email="taltskaisa@gmail.com">Kaisa Talts</maintainer>
-  <license>Apache-2.0</license>
+  <license>TODO</license>
 
   <buildtool_depend>ament_python</buildtool_depend>
   

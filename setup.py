@@ -16,7 +16,7 @@ setup(
     author='Kaisa Talts',
     author_email='taltskaisa@gmail.com',
     description='The jeep_driver package',
-    license='Apache-2.0',
+    license='TODO',
     entry_points={
         'console_scripts': [
             'jeep_driver_node = jeep_driver.jeep_driver:main',
@@ -24,6 +24,7 @@ setup(
             'keyboard_node = jeep_driver.teleop_keyboard:main',
             'path_follower_node = jeep_driver.path_follower:main',
             'drive_logic_node = jeep_driver.drive_logic:main',
+            'last_path_recorder_node = jeep_driver.last_path_recorder:main',
         ],
     },
 )

@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     ros-humble-pcl-conversions \
     ros-humble-ament-cmake \
     ros-humble-ament-cmake-python \
+    ros-humble-rosbag2-py \
     && rm -rf /var/lib/apt/lists/*
 
 
