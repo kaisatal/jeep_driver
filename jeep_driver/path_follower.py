@@ -14,9 +14,7 @@ def yaw_from_quaternion(q):
     return math.atan2(siny_cosp, cosy_cosp)
 
 def distance(a, b):
-    dx = a.x - b.x
-    dy = a.y - b.y
-    return math.hypot(dx, dy)
+    return math.hypot(a.x - b.x, a.y - b.y)
 
 
 def read_last_path(bag_uri):
@@ -27,15 +25,22 @@ def read_last_path(bag_uri):
     converter_options = rosbag2_py.ConverterOptions('', '')
 
     reader = rosbag2_py.SequentialReader()
-    reader.open(storage_options, converter_options)
+
+    try:
+        reader.open(storage_options, converter_options)
+    except Exception:
+        return None
 
     last_path = None
 
     while reader.has_next():
         topic, data, t = reader.read_next()
         if topic == '/path':
-            msg = deserialize_message(data, Path)
-            last_path = msg
+            try:
+                msg = deserialize_message(data, Path)
+                last_path = msg
+            except Exception:
+                continue
 
     return last_path
 
@@ -53,11 +58,15 @@ class PurePursuitNode(Node):
 
         # State
         self.current_pose = None
+        self.last_target_index = 0
 
         # Last message from /path (nav_msgs/Path)
         self.path = read_last_path('last_path_bag')
 
-        self.last_target_index = 0
+        if self.path is None or len(self.path.poses) == 0:
+            self.get_logger().error("No valid path loaded")
+            self.path = None
+
         self.create_subscription(PoseWithCovarianceStamped, 'pcl_pose', self.pose_callback, 10)
         self.pub = self.create_publisher(AckermannDrive, 'path_drive', 10)
         self.create_timer(0.1, self.control_loop)  # 10 Hz
@@ -69,21 +78,29 @@ class PurePursuitNode(Node):
         self.current_pose = pose
 
     def get_lookahead_point(self):
-        if not self.current_pose or not self.path:
+        if self.current_pose is None or self.path is None:
+            return None
+        
+        poses = self.path.poses
+        if len(poses) == 0:
             return None
 
         current_pos = self.current_pose.pose.position
 
-        for i in range(self.last_target_index, len(self.path)):
-            point = self.path[i].pose.position
+        for i in range(self.last_target_index, len(poses)):
+            point = poses[i].pose.position
             if distance(current_pos, point) >= self.lookahead_distance:
                 self.last_target_index = i
                 return point
 
-        return self.path[-1].pose.position
+        return poses[-1].pose.position
 
     def control_loop(self):
-        if self.current_pose is None or not self.path:
+        if self.current_pose is None or self.path is None:
+            return
+        
+        poses = self.path.poses
+        if len(poses) == 0:
             return
 
         target = self.get_lookahead_point()
@@ -93,8 +110,10 @@ class PurePursuitNode(Node):
         pose = self.current_pose.pose
         position = pose.position
 
+        goal = poses[-1].pose.position
+
         # Stop if very close to goal
-        if distance(position, self.path[-1].pose.position) < 0.1:
+        if distance(position, goal) < 0.1:
             drive_msg = AckermannDrive()
             drive_msg.steering_angle = 0.0
             drive_msg.speed = 0.0
@@ -121,10 +140,10 @@ class PurePursuitNode(Node):
         steering_angle_deg = math.degrees(steering_rad)
 
         # Clamp the steering angle
-        steering_angle_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_angle_deg))
+        steering_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_angle_deg))
 
         drive_msg = AckermannDrive()
-        drive_msg.steering_angle = steering_angle_deg
+        drive_msg.steering_angle = steering_deg
         drive_msg.speed = speed
 
         self.pub.publish(drive_msg)
