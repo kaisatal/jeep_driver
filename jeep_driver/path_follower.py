@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.serialization import deserialize_message
 from ackermann_msgs.msg import AckermannDrive
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from nav_msgs.msg import Path
 import math
 import rosbag2_py
@@ -58,12 +58,15 @@ class PurePursuitNode(Node):
         self.path = read_last_path('last_path_bag')
 
         self.last_target_index = 0
-        self.create_subscription(PoseStamped, 'pcl_pose', self.pose_callback, 10)
+        self.create_subscription(PoseWithCovarianceStamped, 'pcl_pose', self.pose_callback, 10)
         self.pub = self.create_publisher(AckermannDrive, 'path_drive', 10)
         self.create_timer(0.1, self.control_loop)  # 10 Hz
 
     def pose_callback(self, msg):
-        self.current_pose = msg
+        pose = PoseStamped()
+        pose.header = msg.header
+        pose.pose = msg.pose.pose
+        self.current_pose = pose
 
     def get_lookahead_point(self):
         if not self.current_pose or not self.path:
