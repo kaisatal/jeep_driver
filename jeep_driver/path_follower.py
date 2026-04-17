@@ -159,15 +159,15 @@ class PurePursuitNode(Node):
         yaw = yaw_from_quaternion(pose.orientation)
 
         # Rotate the vector to be in robot frame
-        local_x = math.cos(-yaw) * dx - math.sin(-yaw) * dy # local_x: front when positive, back when negative
-        local_y = math.sin(-yaw) * dx + math.cos(-yaw) * dy # local_y: left when positive, right when negative
+        local_forward =  math.sin(yaw)*dx + math.cos(yaw)*dy # map has y as forward
+        local_lateral = math.cos(yaw)*dx - math.sin(yaw)*dy
         
-        if local_x >= 0:
+        if local_forward >= 0:
             speed = 1.0
         else:
             speed = -1.0
 
-        curvature = 2.0 * local_y / (self.lookahead_distance ** 2)
+        curvature = 2.0 * local_lateral / (self.lookahead_distance ** 2)
         steering_rad = math.atan(self.wheelbase * curvature)
         steering_deg = math.degrees(steering_rad)
 
