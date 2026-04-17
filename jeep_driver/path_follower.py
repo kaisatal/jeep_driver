@@ -16,36 +16,8 @@ def yaw_from_quaternion(q):
 def distance(a, b):
     return math.hypot(a.x - b.x, a.y - b.y)
 
-# Get path from file
-def read_last_path(bag_uri):
-    storage_options = rosbag2_py.StorageOptions(
-        uri=bag_uri,
-        storage_id='sqlite3'
-    )
-    converter_options = rosbag2_py.ConverterOptions('', '')
-
-    reader = rosbag2_py.SequentialReader()
-
-    try:
-        reader.open(storage_options, converter_options)
-    except Exception:
-        return None
-
-    last_path = None
-
-    while reader.has_next():
-        topic, data, t = reader.read_next()
-        if topic == '/path':
-            try:
-                msg = deserialize_message(data, Path)
-                last_path = msg
-            except Exception:
-                continue
-
-    return last_path
-
 # Alternative: manual path creation
-def make_pose(x, y, yaw=0.0, frame_id="map"):
+def make_pose(x, y, yaw = 0.0, frame_id="map"):
     pose = PoseStamped()
     pose.header.frame_id = frame_id
 
@@ -79,18 +51,11 @@ class PurePursuitNode(Node):
         # State
         self.current_pose = None
         self.last_target_index = 0
-
-        '''# Message from /path (nav_msgs/Path)
-        self.path = read_last_path('last_path_bag')
-
-        if self.path is None or len(self.path.poses) == 0:
-            self.get_logger().error("No valid path loaded")
-            self.path = None'''
         
         # Manual path creation
         self.path = Path()
         self.path.header.frame_id = "map"
-        # Manual sample path
+        # Manual sample path (forward 2 m)
         coords = [
             (0.0, 0.0),
             (0.0, 1.0),
@@ -130,6 +95,7 @@ class PurePursuitNode(Node):
         if self.current_pose is None or self.path is None:
             return
         
+        # From desired path: y>0 is forward, x>0 is to the right
         poses = self.path.poses
         if len(poses) == 0:
             return
@@ -139,28 +105,30 @@ class PurePursuitNode(Node):
             return
 
         pose = self.current_pose.pose
+        # From lidar localization: y>0 is forward, x>0 is to the right
         position = pose.position
 
-        goal = poses[-1].pose.position
+        path_end = poses[-1].pose.position
 
-        # Stop if very close to goal
-        if distance(position, goal) < 1.0:
+        # Stop if close to the end of path
+        if distance(position, path_end) < 1.0:
             self.get_logger().info("Reached end of Path")
             drive_msg = AckermannDrive()
             drive_msg.steering_angle = 0.0
             drive_msg.speed = 0.0
             self.pub.publish(drive_msg)
-            raise KeyboardInterrupt # just needs to shut down
+            raise KeyboardInterrupt
 
-        # Get the vector
+        # Car movement vector
         dx = target.x - position.x
         dy = target.y - position.y
 
         yaw = yaw_from_quaternion(pose.orientation)
 
-        # Rotate the vector to be in robot frame
-        local_lateral =  math.sin(yaw)*dx + math.cos(yaw)*dy
-        local_forward = math.cos(yaw)*dx - math.sin(yaw)*dy # map has y as forward
+        # Rotate the vector to be in car frame
+        local_lateral = math.cos(yaw)*dx - math.sin(yaw)*dy
+        local_forward =  math.sin(yaw)*dx + math.cos(yaw)*dy
+        self.get_logger().info(f"Movement: 1 - forward, -1 - backward: {local_lateral}, 1 - right, -1 - left: {local_lateral}")
         
         if local_forward >= 0:
             speed = 1.0
