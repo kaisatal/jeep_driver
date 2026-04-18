@@ -13,12 +13,12 @@ The system consists of five ROS 2 nodes:
 - `feedback_node` — steering angle sensor (AS5600 via I2C)
 - `path_follower_node` — pure pursuit controller
 - `drive_logic_node` — selects between manual and autonomous input
-- `teleop_keyboard_node` — keyboard control interface
+- `keyboard_node` — keyboard control interface
 
-Launching is separated into 2 files:
+There are 2 launch files for launching multiple nodes at once:
 
-- `jeep_driver.launch.py` — jeep driver + sensor (Jetson Nano)
-- `drive_logic.launch.py` — control logic decisions (this can be on a separate machine)
+- `jeep_driver.launch.py` — jeep_driver_node + keyboard_node (must be on Jetson Nano)
+- `drive_logic.launch.py` — path_follower_node + drive_logic_node (recommended to put on a separate machine)
 
 ---
 
@@ -26,7 +26,7 @@ Launching is separated into 2 files:
 
 ```bash
 $ cd ~/ros2_ws/src
-$ # Place this package here
+$ git clone <this package>
 ```
 
 Build:
@@ -57,7 +57,7 @@ a → left
 
 d → right
 
-SPACE → toggle manual/autonomous driving
+SPACE → toggle Manual vs Autonomous driving
 
 
 ### Another device with ROS 2 Humble:
