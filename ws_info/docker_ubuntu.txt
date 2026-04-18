@@ -14,15 +14,25 @@ sudo docker run -it --rm \
   -e CYCLONEDDS_URI=file:///cyclonedds.xml \
   -v /home/ubuntu/ros2_ws/cyclonedds.xml:/cyclonedds.xml \
   -v /home/ubuntu/map:/map \
+  -v /home/ubuntu/last_path_bag:/last_path_bag \
   localization_ros2
+
+(Check: 'ros2 topic hz /velodyne_points' peab andma average rate ~10)
 
 ros2 launch lidar_localization_ros2 lidar_localization.launch.py
 
 Terminal 2:
 sudo docker exec -it localization_container bash
 
-Variant 1) lokalisatsioon (/path sõnumi loomine):
+Variant 1) lokalisatsioon (/path sõnumi salvestamine faili last_path_bag):
     ros2 run jeep_driver last_path_recorder_node
 
-Variant 2) trajektoori järgimine (kasutab /path sõnumit):
+Variant 2) trajektoori järgimine (kasutab /path sõnumit failist last_path_bag):
     ros2 launch jeep_driver drive_logic.launch.py
+    
+    (või kui ainult manuaalne sõit:
+    ros2 run jeep_driver drive_logic_node)
+    
+Debug:
+ros2 topic echo /pcl_pose
+ros2 topic echo /path_drive
