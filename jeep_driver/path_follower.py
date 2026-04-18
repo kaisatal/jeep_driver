@@ -126,8 +126,8 @@ class PurePursuitNode(Node):
         yaw = yaw_from_quaternion(pose.orientation)
 
         # Rotate the vector to be in car frame
-        local_lateral = math.cos(-yaw)*dx - math.sin(-yaw)*dy
-        local_forward =  math.sin(-yaw)*dx + math.cos(-yaw)*dy
+        local_lateral = math.cos(yaw)*dx + math.sin(yaw)*dy
+        local_forward =  -math.sin(yaw)*dx + math.cos(yaw)*dy
         # local_forward: 1 - forward, -1 - backward; local_lateral: 1 - right, -1 - left
         self.get_logger().info(f"Movement vector: {dx}, {dy}. In local frame: {local_lateral}, {local_forward}")
         
@@ -137,8 +137,7 @@ class PurePursuitNode(Node):
             speed = -1.0
 
         curvature = 2.0 * local_lateral / (self.lookahead_distance ** 2)
-        steering_rad = math.atan(self.wheelbase * curvature)
-        steering_deg = math.degrees(steering_rad)
+        steering_deg = -math.degrees(math.atan(self.wheelbase * curvature))
 
         # Clamp the steering angle
         steering_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_deg))
