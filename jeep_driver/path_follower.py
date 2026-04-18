@@ -16,6 +16,33 @@ def yaw_from_quaternion(q):
 def distance(a, b):
     return math.hypot(a.x - b.x, a.y - b.y)
 
+# Get path from file
+def read_last_path(bag_uri):
+    storage_options = rosbag2_py.StorageOptions(
+        uri=bag_uri,
+        storage_id='sqlite3'
+    )
+    converter_options = rosbag2_py.ConverterOptions('', '')
+
+    reader = rosbag2_py.SequentialReader()
+
+    try:
+        reader.open(storage_options, converter_options)
+    except Exception:
+        return None
+
+    last_path = None
+
+    while reader.has_next():
+        topic, data, t = reader.read_next()
+        if topic == '/path':
+            try:
+                msg = deserialize_message(data, Path)
+                last_path = msg
+            except Exception:
+                continue
+    return last_path
+
 # Alternative: manual path creation
 def make_pose(x, y, yaw = 0.0, frame_id="map"):
     pose = PoseStamped()
@@ -52,11 +79,17 @@ class PurePursuitNode(Node):
         # State
         self.current_pose = None
         self.last_target_index = 0
+
+        # Message from /path (nav_msgs/Path)
+        self.path = read_last_path('last_path_bag')
+
+        if self.path is None or len(self.path.poses) == 0:
+            self.get_logger().error("No valid path loaded")
+            self.path = None
         
-        # Manual path creation
+        # Manual sample path
         self.path = Path()
         self.path.header.frame_id = "map"
-        # Manual sample path (forward 2 m)
         coords = [
             (0.0, 0.0),
             (0.0, 1.0),
