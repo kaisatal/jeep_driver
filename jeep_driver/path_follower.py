@@ -126,8 +126,8 @@ class PurePursuitNode(Node):
         yaw = yaw_from_quaternion(pose.orientation)
 
         # Rotate the vector to be in car frame
-        local_lateral = math.cos(yaw)*dx - math.sin(yaw)*dy
-        local_forward =  math.sin(yaw)*dx + math.cos(yaw)*dy
+        local_lateral = math.cos(-yaw)*dx - math.sin(-yaw)*dy
+        local_forward =  math.sin(-yaw)*dx + math.cos(-yaw)*dy
         # local_forward: 1 - forward, -1 - backward; local_lateral: 1 - right, -1 - left
         self.get_logger().info(f"Movement vector: {dx}, {dy}. In local frame: {local_lateral}, {local_forward}")
         
