@@ -153,7 +153,7 @@ class JeepDriverNode(Node):
         if not self.gpio_ready:
             return
 
-        self.get_logger().info(f"target: {self.target_ang}, curr: {self.feedback_ang}, output: {self.u}")
+        self.get_logger().info(f"target: {self.target_ang}, curr: {self.feedback_ang}, e: {self.e}, u: {self.u}")
 
         # Turning
         if self.e > self.thresh: # To prevent oscillation from small differences
@@ -177,7 +177,7 @@ class JeepDriverNode(Node):
 
         # Since the car only has a fixed speed (and it's quite fast), it won't be able to turn fast enough while moving forward.
         # One option to fix this is to stall movement until the steering angle is close enough
-        if self.e > self.thresh:
+        if abs(self.e) > self.thresh:
             # Stall movement
             self.speed = 0
 
