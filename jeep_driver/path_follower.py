@@ -75,6 +75,7 @@ class PurePursuitNode(Node):
         self.min_steering_deg = -20.0
         self.max_steering_deg = 75.0
         self.offset = 50 # Value (in deg) for straight wheels
+        self.goal_reached_err = 0.6 # Allowed error at the end of the path
 
         # State
         self.current_pose = None
@@ -147,7 +148,7 @@ class PurePursuitNode(Node):
         path_end = poses[-1].pose.position
 
         # Stop if close to the end of path
-        if distance(position, path_end) < 1.0:
+        if distance(position, path_end) < self.goal_reached_err:
             self.get_logger().info("Reached end of Path")
             drive_msg = AckermannDrive()
             drive_msg.steering_angle = 0.0
