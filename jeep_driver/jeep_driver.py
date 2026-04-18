@@ -121,9 +121,9 @@ class JeepDriverNode(Node):
         self.last_received = self.get_clock().now().nanoseconds / 1e9
 
         self.pid = PID(
-            Kp = 10, Ki = 5, Kd = 20, 
+            Kp = 5, Ki = 5, Kd = 5, 
             setpoint = 0,
-            output_limits = (-98.5, 98.5) # Motor isn't responding to values in range ~ 99-100
+            output_limits = (-96, 96) # Motor isn't responding to values in range ~ 99-100
         )
 
         self.pwm = PWMWorker() # sysfs commands
