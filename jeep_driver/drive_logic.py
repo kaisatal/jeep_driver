@@ -38,14 +38,9 @@ class DriveLogicNode(Node):
             cmd.steering_angle = self.last_keyboard_msg.steering_angle
             cmd.speed = self.last_keyboard_msg.speed
 
-        elif self.input_choice == 2:
+        else: # self.input_choice == 2
             cmd.steering_angle = self.last_path_msg.steering_angle
             cmd.speed = self.last_path_msg.speed
-
-        else:
-            # Fallback safety
-            cmd.steering_angle = 45 # middle
-            cmd.speed = 0.0
 
         self.pub.publish(cmd)
 

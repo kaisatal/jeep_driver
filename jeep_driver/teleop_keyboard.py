@@ -24,7 +24,7 @@ Ctrl+C to quit
 
 moveBindings = {'a', 'd', 'w', 's'}
 
-input_choice = {1: "/keyboard_drive", 2: "/cmd_drive"} # For informative logging
+input_choice = {1: "/keyboard_drive", 2: "/path_drive"} # For informative logging
 
 
 def getKey(settings, timeout):
@@ -106,7 +106,7 @@ class KeyboardNode(Node):
                     else:
                         self.choice_value = 1
                     
-                    # 1 - /keyboard_drive, 2 - /cmd_drive
+                    # 1 - /keyboard_drive, 2 - /path_drive
                     self.get_logger().info(f"Input choice set to: {input_choice[self.choice_value]}")
 
                 elif key == '\x03':  # Ctrl+C
