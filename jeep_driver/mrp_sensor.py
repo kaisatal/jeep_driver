@@ -46,7 +46,7 @@ class FeedbackNode(Node):
         if angle is not None and angle < 360:
             self.avg_filter.pop(0)
             self.avg_filter.append(angle)
-            avg_angle = round(174 - sum(self.avg_filter)/len(self.avg_filter)) # TODO: might remove the arbitrary range shift
+            avg_angle = round(174 - sum(self.avg_filter)/len(self.avg_filter)) # Might remove the arbitrary range shift
             if avg_angle != self.prev_ang:
                 self.feedback.steering_angle = float(avg_angle)
                 self.prev_ang = avg_angle

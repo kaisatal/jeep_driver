@@ -177,6 +177,12 @@ class JeepDriverNode(Node):
         if self.get_clock().now().nanoseconds / 1e9 - self.last_received > 2:
             self.speed = 0
 
+        # Since the car only has a fixed speed (and it's quite fast), it won't be able to turn fast enough while moving forward.
+        # One option to fix this is to stall moving until the steering angle is close enough
+        if self.e > 9:
+            # Stall movement
+            self.speed = 0
+
         # Driving
         if self.speed > 0:
             GPIO.output(pins["forward"], GPIO.HIGH)
