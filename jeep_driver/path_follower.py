@@ -88,7 +88,7 @@ class PurePursuitNode(Node):
             self.path = None
         
         # Manual sample path
-        self.path = Path()
+        '''self.path = Path()
         self.path.header.frame_id = "map"
         coords = [
             (0.0, 0.0),
@@ -97,7 +97,7 @@ class PurePursuitNode(Node):
             (-1.0, 2.0),
             (-2.0, 2.0)
         ]
-        self.path.poses = [make_pose(x, y) for x, y in coords]
+        self.path.poses = [make_pose(x, y) for x, y in coords]'''
 
         self.create_subscription(PoseWithCovarianceStamped, 'pcl_pose', self.pose_callback, 10)
         self.pub = self.create_publisher(AckermannDrive, 'path_drive', 10)
