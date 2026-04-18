@@ -48,7 +48,7 @@ class KeyboardNode(Node):
         self.choice_timer = self.create_timer(0.5, self.publish_choice) # 2 Hz
 
         # Parameters
-        self.ang = 45
+        self.ang = 50
         self.speed = 0.0
 
         # Magnet value (angle) range depends on how the magnet is situated, so this range might change
