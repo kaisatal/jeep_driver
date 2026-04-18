@@ -47,6 +47,7 @@ class PurePursuitNode(Node):
         # Magnet value (angle) range depends on how the magnet is situated, so this range might change
         self.min_steering_deg = -20.0
         self.max_steering_deg = 75.0
+        self.offset = 45 # Value (in deg) at which the wheels are straight
 
         # State
         self.current_pose = None
@@ -137,7 +138,7 @@ class PurePursuitNode(Node):
             speed = -1.0
 
         curvature = 2.0 * local_lateral / (self.lookahead_distance ** 2)
-        steering_deg = -math.degrees(math.atan(self.wheelbase * curvature))
+        steering_deg = -math.degrees(math.atan(self.wheelbase * curvature)) + self.offset
 
         # Clamp the steering angle
         steering_deg = max(self.min_steering_deg, min(self.max_steering_deg, steering_deg))
