@@ -158,15 +158,13 @@ class JeepDriverNode(Node):
         # Turning
         if self.e > self.thresh: # To prevent oscillation from small differences
             if abs(self.u) > 60: # To prevent sending low values to the motor
-                self.pwm.set(abs(self.u), 0)
-                #print("Turning left")
+                self.pwm.set(abs(self.u), 0) # Turning left
             else:
                 self.pwm.set(0, 0)
 
         elif self.e < -self.thresh:
             if abs(self.u) > 60:
-                self.pwm.set(0, abs(self.u))
-                #print("Turning right")
+                self.pwm.set(0, abs(self.u)) # Turning right
             else:
                 self.pwm.set(0, 0)
 
@@ -178,8 +176,8 @@ class JeepDriverNode(Node):
             self.speed = 0
 
         # Since the car only has a fixed speed (and it's quite fast), it won't be able to turn fast enough while moving forward.
-        # One option to fix this is to stall moving until the steering angle is close enough
-        if self.e > 9:
+        # One option to fix this is to stall movement until the steering angle is close enough
+        if self.e > self.thresh:
             # Stall movement
             self.speed = 0
 
