@@ -151,7 +151,7 @@ class PurePursuitNode(Node):
         if distance(position, path_end) < self.goal_reached_err:
             self.get_logger().info("Reached end of Path")
             drive_msg = AckermannDrive()
-            drive_msg.steering_angle = 0.0
+            # Steering angle stays the same
             drive_msg.speed = 0.0
             self.pub.publish(drive_msg)
             raise KeyboardInterrupt
