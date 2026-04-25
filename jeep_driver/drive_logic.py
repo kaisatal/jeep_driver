@@ -16,8 +16,8 @@ class DriveLogicNode(Node):
         
         # 1 - /keyboard_drive (manual driving), 2 - /path_drive (autonomous driving)
         self.input_choice = 1
-        self.last_keyboard_msg = AckermannDrive()
-        self.last_path_msg = AckermannDrive()
+        self.last_keyboard_msg = None
+        self.last_path_msg = None
         
         # Timer for publishing output
         self.timer = self.create_timer(0.1, self.publish_cmd)  # 10 Hz
@@ -35,8 +35,12 @@ class DriveLogicNode(Node):
         cmd = AckermannDrive()
 
         if self.input_choice == 1:
-            cmd.steering_angle = self.last_keyboard_msg.steering_angle
-            cmd.speed = self.last_keyboard_msg.speed
+            if self.last_keyboard_msg is not None:
+                cmd.steering_angle = self.last_keyboard_msg.steering_angle
+                cmd.speed = self.last_keyboard_msg.speed
+            else:
+                cmd.steering_angle = 50 # Middle
+                cmd.speed = 0
 
         else: # self.input_choice == 2
             cmd.steering_angle = self.last_path_msg.steering_angle

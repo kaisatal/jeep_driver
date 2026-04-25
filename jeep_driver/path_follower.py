@@ -74,7 +74,7 @@ class PurePursuitNode(Node):
         # Magnet value (angle) range depends on how the magnet is situated, so this range might change
         self.min_steering_deg = -20.0
         self.max_steering_deg = 75.0
-        self.offset = 50 # Value (in deg) for straight wheels
+        self.offset = 50 # Middle - degrees for straight wheels
         self.goal_reached_err = 0.6 # Allowed error at the end of the path
 
         # State

@@ -111,8 +111,8 @@ class JeepDriverNode(Node):
         self.timer = self.create_timer(0.02, self.update)  # 50 Hz
 
         # PID variables
-        self.feedback_ang = 50 # from angle sensor
-        self.target_ang = 50 # desired angle (starting angle)
+        self.feedback_ang = 50 # Middle, later from angle sensor
+        self.target_ang = 50 # Middle, desired angle (starting angle)
         self.thresh = 4 # allowed angle difference
         self.e = 0 # current error (target_ang - feedback_ang)
         self.u = 0 # output from PID

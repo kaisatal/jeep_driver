@@ -11,18 +11,18 @@ The system consists of five ROS 2 nodes:
 
 - `jeep_driver_node` — low-level motor and steering control (GPIO + PWM)
 - `feedback_node` — steering angle sensor (AS5600 via I2C)
-- `path_follower_node` — pure pursuit controller
-- `drive_logic_node` — selects between manual and autonomous input
-- `keyboard_node` — keyboard control interface
+- `keyboard_node` — keyboard control interface (Manual)
+- `last_path_recorder_node` — saving traversed path into a file
+- `path_follower_node` — pure pursuit controller (Autonomous)
+- `drive_logic_node` — selects between Manual and Autonomous input
 
-There are 2 launch files for launching multiple nodes at once:
+Launch file for vehicle control through Jetson Nano:
 
-- `jeep_driver.launch.py` — jeep_driver_node + keyboard_node (must be on Jetson Nano)
-- `drive_logic.launch.py` — path_follower_node + drive_logic_node (recommended to put on a separate machine)
+- `jeep_driver.launch.py` — jeep_driver_node + keyboard_node + drive_logic_node
 
 ---
 
-## Workspace setup:
+## Workspace setup
 
 ```bash
 $ cd ~/ros2_ws/src
@@ -37,7 +37,7 @@ $ colcon build
 $ source install/setup.bash
 ```
 
-### Jetson Nano with ROS 2 Humble:
+### Jetson Nano with ROS 2 Humble
 Low-level driver + sensor nodes:
 ```bash
 $ ros2 launch jeep_driver jeep_driver.launch.py
@@ -50,18 +50,15 @@ $ ros2 run jeep_driver keyboard_node
 Controls:
 
 w → forward
-
-s → reverse
-
 a → left
-
+s → reverse
 d → right
 
 SPACE → toggle Manual vs Autonomous driving
 
 
-### Another device with ROS 2 Humble:
+### Another device with ROS 2 Humble
 Drive logic nodes:
 ```bash
-$ ros2 launch jeep_driver drive_logic.launch.py
+$ ros2 run jeep_driver path_follower.py
 ```
