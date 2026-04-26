@@ -4,6 +4,8 @@ from rclpy.node import Node
 import rclpy.serialization
 from nav_msgs.msg import Path
 import rosbag2_py
+import os
+import shutil
 
 class LastPathRecorderNode(Node):
     def __init__(self):
@@ -17,9 +19,15 @@ class LastPathRecorderNode(Node):
     def write_last(self):
         if self.last_msg is None:
             return
+        
+        bag_path = 'last_path_bag'
+        
+        # Remove previous existing file
+        if os.path.exists(bag_path):
+            shutil.rmtree(bag_path)
 
         writer = rosbag2_py.SequentialWriter()
-        storage_options = rosbag2_py.StorageOptions(uri='last_path_bag', storage_id='sqlite3')
+        storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id='sqlite3')
         converter_options = rosbag2_py.ConverterOptions('', '')
         writer.open(storage_options, converter_options)
 
@@ -38,6 +46,8 @@ def main():
     node = LastPathRecorderNode()
     try:
         rclpy.spin(node)
-    finally:
+    except KeyboardInterrupt:
         node.write_last()
+        node.get_logger().info("Written to last_path_bag")
+    finally:
         node.destroy_node()
