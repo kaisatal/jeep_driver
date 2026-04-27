@@ -22,9 +22,9 @@ class LastPathRecorderNode(Node):
         
         bag_path = 'last_path_bag'
         
-        # Remove previous existing file
-        if os.path.exists(bag_path):
-            shutil.rmtree(bag_path)
+        # If the folder exists, append "0" until it reaches an unused path
+        while os.path.exists(bag_path):
+            bag_path += "0"
 
         writer = rosbag2_py.SequentialWriter()
         storage_options = rosbag2_py.StorageOptions(uri=bag_path, storage_id='sqlite3')
