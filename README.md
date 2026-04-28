@@ -14,13 +14,23 @@ The system consists of five ROS 2 nodes:
 - `keyboard_node` — keyboard control interface (Manual)
 - `last_path_recorder_node` — saving traversed path into a file
 - `path_follower_node` — pure pursuit controller (Autonomous)
-- `drive_logic_node` — selects between Manual and Autonomous input
+- `drive_logic_node` — selection between Manual and Autonomous input
 
-Launch file for vehicle control through Jetson Nano:
+Launch file for vehicle control (through Jetson Nano):
 
 - `jeep_driver.launch.py` — jeep_driver_node + keyboard_node + drive_logic_node
 
 ---
+
+### Additional required ROS packages
+
+On Jetson Nano:
+- ackermann_msgs
+
+On external laptop:
+- lidar_localization_ros2
+- lidarslam_ros2
+- ndt_omp_ros2
 
 ## Workspace setup
 
@@ -38,27 +48,37 @@ $ source install/setup.bash
 ```
 
 ### Jetson Nano with ROS 2 Humble
-Low-level driver + sensor nodes:
-```bash
-$ ros2 launch jeep_driver jeep_driver.launch.py
-```
 
-Keyboard control node:
+Keyboard control (first terminal):
 ```bash
 $ ros2 run jeep_driver keyboard_node
 ```
+
 Controls:
 
 w → forward
+
 a → left
+
 s → reverse
+
 d → right
 
 SPACE → toggle Manual vs Autonomous driving
 
-
-### Another device with ROS 2 Humble
-Drive logic nodes:
+Motor driver (second terminal):
 ```bash
-$ ros2 run jeep_driver path_follower.py
+$ ros2 launch jeep_driver jeep_driver.launch.py
+```
+
+### External laptop with ROS 2 Humble
+
+Saving the current path to last_path_bag:
+```bash
+$ ros2 run jeep_driver last_path_recorder_node
+```
+
+Following the given path from last_path_bag:
+```bash
+$ ros2 run jeep_driver path_follower_node
 ```

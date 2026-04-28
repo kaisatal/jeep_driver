@@ -1,4 +1,4 @@
-Vajadusel:
+If needed:
 sudo docker build -t localization_ros2 .
 
 Terminal 1:
@@ -17,22 +17,19 @@ sudo docker run -it --rm \
   -v /home/ubuntu/last_path_bag:/last_path_bag \
   localization_ros2
 
-(Check: 'ros2 topic hz /velodyne_points' peab andma average rate ~10)
+(Check: 'ros2 topic hz /velodyne_points' has to have an average rate of ~10)
 
 ros2 launch lidar_localization_ros2 lidar_localization.launch.py
 
 Terminal 2:
 sudo docker exec -it localization_container bash
 
-Variant 1) lokalisatsioon (/path sõnumi salvestamine faili last_path_bag):
+option 1) path input (saving last /path msg to last_path_bag):
     ros2 run jeep_driver last_path_recorder_node
 
-Variant 2) trajektoori järgimine (kasutab /path sõnumit failist last_path_bag):
-    ros2 launch jeep_driver drive_logic.launch.py
+option 2) autonomous path following (using /path msg from last_path_bag):
+    ros2 run jeep_driver path_follower_node
     
-    (või kui ainult manuaalne sõit:
-    ros2 run jeep_driver drive_logic_node)
-    
-Debug:
+Debugging:
 ros2 topic echo /pcl_pose
 ros2 topic echo /path_drive

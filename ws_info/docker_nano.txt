@@ -1,7 +1,7 @@
-Lidari IP Nanole (peab iga kord tegema):
-sudo ip addr add 192.168.2.100/24 dev eth1 (või eth0)
+Lidar IP recognition to Nano (after rebooting the Lidar):
+sudo ip addr add 192.168.2.100/24 dev eth1 (or eth0)
 
-Vajadusel:
+If needed:
 docker build -t jeep_ros2 .
 
 Terminal 1:
@@ -27,7 +27,7 @@ ros2 run velodyne_driver velodyne_driver_node \
 -p device_ip:=192.168.2.12 \
 -p port:=2369 \
 -p model:=VLP16 \
--p interface:=eth1 (või eth0)
+-p interface:=eth1 (or eth0)
 
 Terminal 2:
 docker exec -it jeep_container bash
@@ -40,11 +40,11 @@ ros2 run velodyne_pointcloud velodyne_transform_node \
 Terminal 3:
 docker exec -it jeep_container bash
 
-Variant 1) Kaardi jaoks bag-faili salvestamine:
+option 1) Saving ros2 bag for later creation of the map:
 	ros2 bag record -o /bags/lidar_run1 /velodyne_packets /velodyne_points
 
 
-Variant 2) Auto juhtimine:
+option 2) Driving the car:
 	ros2 run jeep_driver keyboard_node
 
 	Terminal 4:
@@ -53,8 +53,8 @@ Variant 2) Auto juhtimine:
 	ros2 launch jeep_driver jeep_driver.launch.py
 
 
-Debug:
-Kui GPIO pins busy, siis (nano peal):
+Debugging:
+If GPIO pins are busy, then (Nano, outside from Docker):
 for i in 38 149 168 200; do
   echo $i | sudo tee /sys/class/gpio/unexport
 done
