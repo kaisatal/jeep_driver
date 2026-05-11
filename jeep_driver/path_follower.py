@@ -82,7 +82,8 @@ class PurePursuitNode(Node):
         self.last_target_index = 0
 
         # Message from /path (nav_msgs/Path)
-        self.path = read_last_path('last_path_bag')
+        bag_path = '/home/ubuntu/path/last_path_bag'
+        self.path = read_last_path(bag_path)
 
         if self.path is None or len(self.path.poses) == 0:
             self.get_logger().error("No valid path loaded")

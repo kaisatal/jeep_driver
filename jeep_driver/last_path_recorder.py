@@ -5,7 +5,6 @@ import rclpy.serialization
 from nav_msgs.msg import Path
 import rosbag2_py
 import os
-import shutil
 
 class LastPathRecorderNode(Node):
     def __init__(self):
