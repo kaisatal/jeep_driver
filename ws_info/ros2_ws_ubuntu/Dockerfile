@@ -48,8 +48,13 @@ RUN vcs import src < localization.repos \
 RUN apt-get update \
  && rosdep install --from-paths src --ignore-src -r -y --skip-keys="ros_testing"
 
-# Add map_big.pcd to map_path
-RUN sed -i 's|map_path: ""|map_path: "/map/map_big.pcd"|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
+# Update parameters in localization.yaml
+RUN sed -i 's|score_threshold: 2.0|score_threshold: 1.2|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
+RUN sed -i 's|ndt_resolution: 1.0|ndt_resolution: 0.8|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
+RUN sed -i 's|voxel_leaf_size: 0.2|voxel_leaf_size: 0.1|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
+RUN sed -i 's| scan_max_range: 100.0| scan_max_range: 50.0|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
+RUN sed -i 's|initial_pose_qw: 0.0|initial_pose_qw: 1.0|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
+RUN sed -i 's|map_path: ""|map_path: "/home/ubuntu/map/map_outside.pcd"|' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml
 
 # Build workspace
 RUN . /opt/ros/humble/setup.sh && colcon build

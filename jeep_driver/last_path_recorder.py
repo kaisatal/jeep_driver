@@ -20,7 +20,7 @@ class LastPathRecorderNode(Node):
         if self.last_msg is None:
             return
         
-        bag_path = 'last_path_bag'
+        bag_path = '/home/ubuntu/path/last_path_bag'
         
         # If the folder exists, append "0" until it reaches an unused path
         while os.path.exists(bag_path):
