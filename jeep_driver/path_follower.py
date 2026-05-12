@@ -156,6 +156,8 @@ class PurePursuitNode(Node):
             drive_msg.speed = 0.0
             self.pub.publish(drive_msg)
             raise KeyboardInterrupt
+        # If still moving
+        speed = 1.0
 
         # Car movement vector
         dx = target.x - position.x
@@ -168,11 +170,6 @@ class PurePursuitNode(Node):
         local_forward =  -math.sin(yaw)*dx + math.cos(yaw)*dy
         # local_forward: 1 - forward, -1 - backward; local_lateral: 1 - right, -1 - left
         self.get_logger().info(f"Movement vector: {dx}, {dy}. In local frame: {local_lateral}, {local_forward}")
-        
-        if local_forward >= 0:
-            speed = 1.0
-        else:
-            speed = -1.0
 
         curvature = 2.0 * local_lateral / (self.lookahead_distance ** 2)
         steering_deg = -math.degrees(math.atan(self.wheelbase * curvature)) + self.offset
