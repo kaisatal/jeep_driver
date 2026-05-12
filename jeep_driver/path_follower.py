@@ -18,6 +18,9 @@ def distance(a, b):
 
 # Get path from file
 def read_last_path(bag_uri):
+    if bag_uri is None:
+        return None
+    
     storage_options = rosbag2_py.StorageOptions(
         uri=bag_uri,
         storage_id='sqlite3'
@@ -28,7 +31,8 @@ def read_last_path(bag_uri):
 
     try:
         reader.open(storage_options, converter_options)
-    except Exception:
+    except Exception as e:
+        print(f'Failed to open bag: {e}')
         return None
 
     last_path = None
@@ -39,7 +43,8 @@ def read_last_path(bag_uri):
             try:
                 msg = deserialize_message(data, Path)
                 last_path = msg
-            except Exception:
+            except Exception as e:
+                print(f'Failed to deserialize path: {e}')
                 continue
     return last_path
 

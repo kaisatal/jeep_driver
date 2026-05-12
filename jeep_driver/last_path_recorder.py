@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-import rclpy.serialization
 from nav_msgs.msg import Path
 import rosbag2_py
 import os
@@ -10,7 +9,7 @@ class LastPathRecorderNode(Node):
     def __init__(self):
         super().__init__('last_path_recorder_node')
         self.last_msg = None
-        self.create_subscription(Path, '/path', self.path_callback, 10)
+        self.create_subscription(Path, '/path', self.path_callback, 10, raw=True)
 
     def path_callback(self, msg):
         self.last_msg = msg
@@ -37,8 +36,7 @@ class LastPathRecorderNode(Node):
         )
         writer.create_topic(topic_info)
 
-        serialized = rclpy.serialization.serialize_message(self.last_msg)
-        writer.write('/path', serialized, self.get_clock().now().nanoseconds)
+        writer.write('/path', self.last_msg, self.get_clock().now().nanoseconds)
 
 def main():
     rclpy.init()
