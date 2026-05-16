@@ -48,33 +48,13 @@ def read_last_path(bag_uri):
                 continue
     return last_path
 
-# Alternative: manual path creation
-def make_pose(x, y, yaw = 0.0, frame_id="map"):
-    pose = PoseStamped()
-    pose.header.frame_id = frame_id
-
-    pose.pose.position.x = x
-    pose.pose.position.y = y
-    pose.pose.position.z = 0.0
-
-    # yaw to quaternion (z-axis rotation)
-    qz = math.sin(yaw / 2.0)
-    qw = math.cos(yaw / 2.0)
-
-    pose.pose.orientation.x = 0.0
-    pose.pose.orientation.y = 0.0
-    pose.pose.orientation.z = qz
-    pose.pose.orientation.w = qw
-    
-    return pose
-
 class PurePursuitNode(Node):
     def __init__(self):
         super().__init__('path_follower_node')
 
         # Parameters
         self.lookahead_distance = 1.0 # meters
-        self.wheelbase = 0.71 # meters
+        self.wheelbase = 0.75 # meters
 
         # Magnet value (angle) range depends on how the magnet is situated, so this range might change
         self.min_steering_deg = -20.0
@@ -93,18 +73,6 @@ class PurePursuitNode(Node):
         if self.path is None or len(self.path.poses) == 0:
             self.get_logger().error("No valid path loaded")
             self.path = None
-        
-        # Manual sample path
-        '''self.path = Path()
-        self.path.header.frame_id = "map"
-        coords = [
-            (0.0, 0.0),
-            (0.0, 1.0),
-            (0.0, 2.0),
-            (-1.0, 2.0),
-            (-2.0, 2.0)
-        ]
-        self.path.poses = [make_pose(x, y) for x, y in coords]'''
 
         self.create_subscription(PoseWithCovarianceStamped, 'pcl_pose', self.pose_callback, 10)
         self.pub = self.create_publisher(AckermannDrive, 'path_drive', 10)
