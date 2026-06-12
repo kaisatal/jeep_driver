@@ -1,3 +1,11 @@
+Map creation from (for example) lidar_run_outside:
+ros2 launch lidarslam lidarslam.launch.py
+
+ros2 bag play ~/bags/lidar_run_outside
+
+ros2 service call /map_save std_srvs/Empty
+
+
 If needed:
 sudo docker build -t localization_ros2 .
 
@@ -19,6 +27,7 @@ sudo docker run -it --rm \
 
 (Check: 'ros2 topic hz /velodyne_points' has to have an average rate of ~10)
 
+(rviz2 -d src/lidar_localization_ros2/rviz/localization.rviz)
 ros2 launch lidar_localization_ros2 lidar_localization.launch.py
 
 Terminal 2:
@@ -33,3 +42,7 @@ option 2) autonomous path following (using /path msg from last_path_bag):
 Debugging:
 ros2 topic echo /pcl_pose
 ros2 topic echo /path_drive
+
+
+# Update parameters in localization.yaml
+RUN sed -i 's|||' /ros2_ws/src/lidar_localization_ros2/param/localization.yaml

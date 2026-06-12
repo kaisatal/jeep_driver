@@ -1,6 +1,3 @@
-Lidar IP recognition to Nano (after rebooting the Lidar):
-sudo ip addr add 192.168.2.100/24 dev eth1 (or eth0)
-
 If needed:
 docker build -t jeep_ros2 .
 
